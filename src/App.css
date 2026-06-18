@@ -1,7 +1,7 @@
 .app-container {
   display: flex;
   height: 100vh;
-  width: 100vw;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -372,6 +372,8 @@
   .header-actions {
     justify-content: space-between;
     width: 100%;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .search-bar {
@@ -381,6 +383,9 @@
   .main-content {
     padding: 16px;
     padding-top: 60px; /* Leave space at top for the sidebar toggle tab */
+    width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   .metrics-grid {
