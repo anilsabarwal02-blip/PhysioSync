@@ -289,7 +289,7 @@ const Dashboard = () => {
               type="text" 
               className="search-bar" 
               placeholder="Search patients, logs..." 
-              style={{ paddingLeft: '38px', width: '300px' }}
+              style={{ paddingLeft: '38px' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchSubmit}

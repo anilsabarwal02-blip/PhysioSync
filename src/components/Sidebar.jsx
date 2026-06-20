@@ -22,6 +22,19 @@ const Sidebar = ({ onLogout, onToggleAI, isAIAssistantOpen }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (window.innerWidth <= 768) {
+        const sidebarEl = document.querySelector('.sidebar');
+        if (sidebarEl && !sidebarEl.contains(e.target) && !isCollapsed) {
+          setIsCollapsed(true);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isCollapsed]);
+
   const handleNavClick = () => {
     if (window.innerWidth <= 768) {
       setIsCollapsed(true);

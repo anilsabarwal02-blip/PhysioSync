@@ -200,7 +200,7 @@ const Appointments = () => {
                 type="text" 
                 className="search-bar" 
                 placeholder="Search patient or treatment..." 
-                style={{ paddingLeft: '38px', width: '280px', borderRadius: '20px', border: '1px solid var(--border)', transition: 'all 0.3s' }}
+                style={{ paddingLeft: '38px', borderRadius: '20px', border: '1px solid var(--border)', transition: 'all 0.3s' }}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
@@ -234,10 +234,10 @@ const Appointments = () => {
                   {/* Card Header (Always Visible) */}
                   <div 
                     onClick={(e) => toggleExpand(app.id, e)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', cursor: 'pointer' }}
+                    className="appointment-card-header"
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                      <div style={{ minWidth: '85px', textAlign: 'center', borderRight: '1px solid var(--border)', paddingRight: '20px' }}>
+                    <div className="appointment-card-left">
+                      <div className="appointment-time-col">
                         <p style={{ margin: 0, fontWeight: '700', color: 'var(--text-main)', fontSize: '1.05rem' }}>{app.time}</p>
                         <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{app.duration}</p>
                       </div>
@@ -254,7 +254,7 @@ const Appointments = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+                    <div className="appointment-card-right">
                       <span style={{ 
                         padding: '6px 14px', 
                         borderRadius: '20px', 
@@ -283,7 +283,7 @@ const Appointments = () => {
                         </div>
                       </div>
                       
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '10px' }}>
+                      <div className="appointment-actions">
                         {app.status === 'Pending' && (
                           <button onClick={(e) => handleStatusChange(app.id, 'Confirmed', e)} className="glass-button" style={{ padding: '8px 16px', background: 'var(--primary)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <CheckCircle size={16} /> Confirm Appointment

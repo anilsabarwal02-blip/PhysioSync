@@ -136,7 +136,8 @@
   border-radius: 20px;
   padding: 8px 16px;
   color: white;
-  width: 250px;
+  width: 100%;
+  max-width: 300px;
   outline: none;
   transition: var(--transition-fast);
 }
@@ -332,6 +333,42 @@
   min-height: 600px;
 }
 
+/* Appointment Card Layout */
+.appointment-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+}
+
+.appointment-card-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.appointment-time-col {
+  min-width: 85px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  padding-right: 20px;
+}
+
+.appointment-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.appointment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
 /* --- Responsive Design for Mobile Devices --- */
 /* Responsive Grid Utilities */
 .responsive-grid-2 {
@@ -471,5 +508,53 @@
   .anatomy-canvas-container {
     min-height: 350px !important;
     height: 350px;
+  }
+
+  .search-bar {
+    max-width: 100% !important;
+  }
+
+  .appointment-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .appointment-card-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .appointment-time-col {
+    border-right: none !important;
+    padding-right: 0 !important;
+    text-align: left !important;
+    min-width: auto !important;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .appointment-card-right {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+
+  .appointment-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .appointment-actions button {
+    flex-grow: 1;
+    justify-content: center;
   }
 }
