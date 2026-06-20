@@ -1121,9 +1121,9 @@ const TreatmentPlanner = () => {
                                     onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.transform = 'translateY(-1px)'; }}
                                     onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.transform = 'none'; }}
                                   >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div className="exercise-item-header">
                                       <span style={{ fontSize: '0.78rem', fontWeight: '500', color: 'var(--text-main)' }}>{ex.name}</span>
-                                      <span style={{ 
+                                      <span className="exercise-params-badge" style={{ 
                                         fontSize: '0.75rem', 
                                         color: painScore >= 7 ? '#dc2626' : painScore >= 4 ? '#d97706' : 'var(--primary)', 
                                         fontWeight: 'bold', 
@@ -1185,7 +1185,7 @@ const TreatmentPlanner = () => {
                 )}
 
                 {/* Approval Footer Action Buttons */}
-                <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+                <div className="planner-footer-buttons">
                   <button 
                     className="glass-button" 
                     onClick={handleApprovePlan}

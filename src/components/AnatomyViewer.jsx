@@ -62,7 +62,7 @@ const AnatomyViewer = () => {
       </header>
 
       <div 
-        className="dashboard-content-grid" 
+        className="dashboard-content-grid anatomy-grid" 
         style={{ 
           gridTemplateColumns: '320px 1fr', 
           gap: '24px', 
@@ -226,7 +226,7 @@ const AnatomyViewer = () => {
         </div>
 
         {/* Right Column: 3D Anatomy Viewport */}
-        <div className="glass-panel" style={{ padding: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+        <div className="glass-panel anatomy-viewport-card" style={{ padding: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
           
           {/* Viewport Header with control buttons */}
           <div 
@@ -281,14 +281,14 @@ const AnatomyViewer = () => {
 
           {/* Actual WebGL Canvas */}
           <div 
+            className="anatomy-canvas-container"
             style={{ 
               flex: 1, 
               background: '#020617', 
               display: 'flex', 
               justifyContent: 'center', 
               alignItems: 'center', 
-              position: 'relative',
-              minHeight: '600px'
+              position: 'relative'
             }}
           >
             <AnatomyCanvas 
