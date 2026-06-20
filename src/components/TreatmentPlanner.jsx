@@ -624,7 +624,7 @@ const TreatmentPlanner = () => {
         </div>
 
         {/* Macros & Caloric Breakdown (Visual SVG ring / Progress bars) */}
-        <div className="glass-panel" style={{ padding: '24px', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px', alignItems: 'center' }}>
+        <div className="glass-panel responsive-grid-1-2" style={{ padding: '24px', alignItems: 'center' }}>
           
           {/* Caloric Circle Visualizer */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
@@ -689,7 +689,7 @@ const TreatmentPlanner = () => {
         </div>
 
         {/* Recommended Foods vs. Avoid Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="responsive-grid-2">
           
           {/* Recommended Foods */}
           <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #10b981', background: 'var(--bg-card)' }}>

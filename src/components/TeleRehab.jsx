@@ -563,7 +563,7 @@ const TeleRehab = () => {
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
+          <div className="responsive-grid-2" style={{ gap: '20px', width: '100%' }}>
             
             {/* Left: Patient Select */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -613,7 +613,7 @@ const TeleRehab = () => {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div className="responsive-grid-2" style={{ gap: '10px' }}>
                 <div className="glass-panel" style={{ padding: '10px', borderRadius: '8px', textAlign: 'center', background: 'rgba(255,255,255,0.3)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Target reps</span>
                   <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '0.9rem' }}>15 Reps</p>
