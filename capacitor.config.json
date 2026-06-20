@@ -1,0 +1,5 @@
+{
+  "appId": "com.physiosync.app",
+  "appName": "PhysioSync",
+  "webDir": "dist"
+}
