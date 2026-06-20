@@ -49,7 +49,6 @@ const REGION_INFO = {
 const AnatomyViewer = () => {
   const [selectedSystem, setSelectedSystem] = useState('Skeletal');
   const [selectedPart, setSelectedPart] = useState('Full Body');
-  const [showSummary, setShowSummary] = useState(true);
   const canvasRef = useRef(null);
 
   return (
@@ -61,18 +60,17 @@ const AnatomyViewer = () => {
         </div>
       </header>
 
-      <div 
-        className="dashboard-content-grid anatomy-grid" 
-        style={{ 
-          gridTemplateColumns: '320px 1fr', 
-          gap: '24px', 
+      <div
+        className="dashboard-content-grid anatomy-grid"
+        style={{
+          gap: '24px',
           alignItems: 'stretch',
           minHeight: 'calc(100vh - 160px)'
         }}
       >
         {/* Left Column: Controls & Information */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
+
           {/* Systems selector */}
           <div className="glass-panel" style={{ padding: '24px' }}>
             <h3 style={{ marginBottom: '16px' }}>Anatomical Systems</h3>
@@ -127,10 +125,10 @@ const AnatomyViewer = () => {
                     }}
                     onClick={() => setSelectedPart(part)}
                   >
-                    <span style={{ 
-                      width: '6px', 
-                      height: '6px', 
-                      borderRadius: '50%', 
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
                       background: isActive ? 'var(--primary)' : 'var(--text-muted)',
                       opacity: isActive ? 1 : 0.4
                     }} />
@@ -142,134 +140,73 @@ const AnatomyViewer = () => {
           </div>
 
           {/* Info Card describing the selected system/region */}
-          {!showSummary ? (
-            <button
-              type="button"
-              onClick={() => setShowSummary(true)}
-              className="glass-button"
-              style={{
-                padding: '12px 16px',
-                fontSize: '0.8rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                width: '100%',
-                background: 'var(--glass-bg)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-main)',
-                cursor: 'pointer',
-                borderRadius: '8px',
-                fontWeight: '600',
-                transition: 'all 0.2s',
-                animation: 'fadeIn 0.2s ease'
-              }}
-            >
-              <Info size={16} style={{ color: 'var(--primary)' }} /> Show Clinical Summary
-            </button>
-          ) : (
-            <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255, 255, 255, 0.3)', animation: 'scaleIn 0.25s ease' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)', margin: 0 }}>
-                  <Info size={20} /> Clinical Summary
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowSummary(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    fontSize: '0.72rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid var(--border)',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
-                >
-                  Hide
-                </button>
-              </div>
-              
-              <div>
-                <span style={{ fontSize: '0.72rem', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active System</span>
-                <p style={{ fontSize: '0.82rem', margin: '4px 0 0 0', color: 'var(--text-main)', lineHeight: '1.45' }}>
-                  {SYSTEM_INFO[selectedSystem].description}
-                </p>
-              </div>
+          <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(255, 255, 255, 0.3)' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)', margin: 0 }}>
+              <Info size={20} /> Clinical Summary
+            </h3>
 
-              <div>
-                <span style={{ fontSize: '0.72rem', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Focus Region</span>
-                <p style={{ fontSize: '0.82rem', margin: '4px 0 0 0', color: 'var(--text-main)', lineHeight: '1.45' }}>
-                  {REGION_INFO[selectedPart]}
-                </p>
-              </div>
-
-              <div style={{ marginTop: 'auto' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Key Highlighted Structures</span>
-                <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px', fontSize: '0.78rem', color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {SYSTEM_INFO[selectedSystem].keyStructures.map((structure, idx) => (
-                    <li key={idx}>{structure}</li>
-                  ))}
-                </ul>
-              </div>
+            <div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active System</span>
+              <p style={{ fontSize: '0.82rem', margin: '4px 0 0 0', color: 'var(--text-main)', lineHeight: '1.45' }}>
+                {SYSTEM_INFO[selectedSystem].description}
+              </p>
             </div>
-          )}
+
+            <div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Focus Region</span>
+              <p style={{ fontSize: '0.82rem', margin: '4px 0 0 0', color: 'var(--text-main)', lineHeight: '1.45' }}>
+                {REGION_INFO[selectedPart]}
+              </p>
+            </div>
+
+            <div style={{ marginTop: 'auto' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Key Highlighted Structures</span>
+              <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px', fontSize: '0.78rem', color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {SYSTEM_INFO[selectedSystem].keyStructures.map((structure, idx) => (
+                  <li key={idx}>{structure}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
 
         </div>
 
         {/* Right Column: 3D Anatomy Viewport */}
         <div className="glass-panel anatomy-viewport-card" style={{ padding: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
-          
+
           {/* Viewport Header with control buttons */}
-          <div 
-            style={{ 
-              padding: '16px 24px', 
-              borderBottom: '1px solid var(--border)', 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              background: 'var(--bg-sidebar)' 
-            }}
-          >
+          <div className="anatomy-viewport-header">
             <div>
               <h3 style={{ margin: 0 }}>{selectedPart} Viewport</h3>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Drag to rotate, scroll/buttons to zoom</span>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                className="glass-button" 
+            <div className="anatomy-viewport-actions">
+              <button
+                className="glass-button"
                 style={{ padding: '8px 14px', background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
                 onClick={() => canvasRef.current?.toggleRotation()}
                 title="Toggle Auto-Rotation"
               >
                 <Rotate3D size={16} /> Spin
               </button>
-              <button 
-                className="glass-button" 
+              <button
+                className="glass-button"
                 style={{ padding: '8px', background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
                 onClick={() => canvasRef.current?.zoomIn()}
                 title="Zoom In"
               >
                 <ZoomIn size={18} />
               </button>
-              <button 
-                className="glass-button" 
+              <button
+                className="glass-button"
                 style={{ padding: '8px', background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
                 onClick={() => canvasRef.current?.zoomOut()}
                 title="Zoom Out"
               >
                 <ZoomOut size={18} />
               </button>
-              <button 
-                className="glass-button" 
+              <button
+                className="glass-button"
                 style={{ padding: '8px 14px', background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
                 onClick={() => canvasRef.current?.resetView()}
                 title="Reset View"
@@ -280,21 +217,21 @@ const AnatomyViewer = () => {
           </div>
 
           {/* Actual WebGL Canvas */}
-          <div 
-            className="anatomy-canvas-container"
-            style={{ 
-              flex: 1, 
-              background: '#020617', 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              position: 'relative'
+          <div
+            style={{
+              flex: 1,
+              background: '#020617',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              position: 'relative',
+              minHeight: '600px'
             }}
           >
-            <AnatomyCanvas 
-              ref={canvasRef} 
-              activeRegion={selectedPart} 
-              activeSystem={selectedSystem} 
+            <AnatomyCanvas
+              ref={canvasRef}
+              activeRegion={selectedPart}
+              activeSystem={selectedSystem}
             />
           </div>
         </div>

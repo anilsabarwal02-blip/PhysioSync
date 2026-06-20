@@ -47,7 +47,7 @@
   justify-content: center;
   cursor: pointer;
   color: var(--text-muted);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   z-index: 20;
   transition: all var(--transition-fast);
 }
@@ -101,8 +101,10 @@
 }
 
 .nav-item.active {
-  background: rgba(13, 148, 136, 0.12); /* light primary green background */
-  color: var(--primary); /* green text and icon */
+  background: rgba(13, 148, 136, 0.12);
+  /* light primary green background */
+  color: var(--primary);
+  /* green text and icon */
   font-weight: 600;
 }
 
@@ -136,8 +138,7 @@
   border-radius: 20px;
   padding: 8px 16px;
   color: white;
-  width: 100%;
-  max-width: 300px;
+  width: 250px;
   outline: none;
   transition: var(--transition-fast);
 }
@@ -294,7 +295,7 @@
   height: 100vh;
   background: var(--bg-main);
   border-left: 1px solid var(--border);
-  box-shadow: -5px 0 25px rgba(0,0,0,0.3);
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3);
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000;
   display: flex;
@@ -309,91 +310,46 @@
   color: white;
 }
 
-/* Global Grid and Layout helpers */
-.exercise-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.planner-footer-buttons {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  width: 100%;
-}
-
-.anatomy-viewport-card {
-  order: 0;
-}
-
-.anatomy-canvas-container {
-  min-height: 600px;
-}
-
-/* Appointment Card Layout */
-.appointment-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  cursor: pointer;
-}
-
-.appointment-card-left {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.appointment-time-col {
-  min-width: 85px;
-  text-align: center;
-  border-right: 1px solid var(--border);
-  padding-right: 20px;
-}
-
-.appointment-card-right {
+.notification-dropdown {
+  position: absolute;
+  top: 50px;
+  right: 0px;
+  width: 320px;
+  padding: 16px;
+  z-index: 1000;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 12px;
 }
 
-.appointment-actions {
+.anatomy-viewport-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 10px;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-sidebar);
+}
+
+.anatomy-viewport-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.anatomy-grid {
+  grid-template-columns: 320px 1fr;
 }
 
 /* --- Responsive Design for Mobile Devices --- */
-/* Responsive Grid Utilities */
-.responsive-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.responsive-grid-1-2 {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 20px;
-}
-
 @media (max-width: 1024px) {
-  .dashboard-content-grid {
-    grid-template-columns: 1fr !important;
+  .dashboard-content-grid, .anatomy-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .responsive-grid-2, .responsive-grid-1-2 {
-    grid-template-columns: 1fr !important;
-  }
-
   .app-container {
     flex-direction: column;
   }
@@ -404,26 +360,28 @@
     left: 0;
     height: 100vh;
     transform: translateX(0);
-    box-shadow: 4px 0 24px rgba(0,0,0,0.1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
     z-index: 100;
   }
 
   .sidebar.collapsed {
     transform: translateX(-100%);
-    width: 260px; /* Keep full width, just hide off-screen */
+    width: 260px;
+    /* Keep full width, just hide off-screen */
     padding: 24px 20px;
     box-shadow: none;
   }
 
   .sidebar.collapsed .nav-item span {
-    display: inline; /* Keep text visible so drawer looks normal when opened */
+    display: inline;
+    /* Keep text visible so drawer looks normal when opened */
   }
 
   .sidebar.collapsed .nav-item {
     justify-content: flex-start;
     padding: 14px 16px;
   }
-  
+
   .sidebar.collapsed .sidebar-header {
     justify-content: flex-start;
   }
@@ -436,7 +394,7 @@
     border-radius: 0 12px 12px 0;
     background: var(--primary);
     color: white;
-    box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
     border: none;
   }
 
@@ -445,7 +403,6 @@
     align-items: stretch;
     gap: 16px;
     margin-bottom: 20px;
-    padding-left: 54px; /* Clear mobile collapsed sidebar toggle button */
   }
 
   .header-actions {
@@ -461,16 +418,11 @@
 
   .main-content {
     padding: 16px;
-    padding-top: 60px; /* Leave space at top for the sidebar toggle tab */
-    width: 100%;
+    padding-top: 60px;
+    /* Leave space at top for the sidebar toggle tab */
+    width: 100vw;
     box-sizing: border-box;
     overflow-x: hidden;
-  }
-
-  .dashboard-content-grid, .anatomy-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 20px !important;
   }
 
   .metrics-grid {
@@ -482,79 +434,45 @@
     right: -100vw;
   }
 
-  .exercise-item-header {
+  .notification-dropdown {
+    right: auto !important;
+    left: 0px !important;
+  }
+
+  .anatomy-viewport-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
+    gap: 12px;
+    padding: 16px;
   }
 
-  .exercise-item-header .exercise-params-badge {
-    white-space: normal !important;
-    text-align: left;
-    display: inline-block;
-    max-width: 100%;
+  .anatomy-viewport-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
-  .planner-footer-buttons {
-    flex-direction: column;
+  .anatomy-viewport-actions button {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 8px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .anatomy-grid {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   .anatomy-viewport-card {
-    order: -1; /* Push 3D Visualizer to top on mobile */
-    height: auto !important;
+    order: -1;
+    height: 480px !important;
+    min-height: 480px !important;
     flex-shrink: 0 !important;
   }
 
   .anatomy-canvas-container {
-    min-height: 350px !important;
-    height: 350px;
-  }
-
-  .search-bar {
-    max-width: 100% !important;
-  }
-
-  .appointment-card-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .appointment-card-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .appointment-time-col {
-    border-right: none !important;
-    padding-right: 0 !important;
-    text-align: left !important;
-    min-width: auto !important;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .appointment-card-right {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    border-top: 1px solid var(--border);
-    padding-top: 12px;
-  }
-
-  .appointment-actions {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .appointment-actions button {
-    flex-grow: 1;
-    justify-content: center;
+    min-height: 380px !important;
+    height: 380px !important;
   }
 }

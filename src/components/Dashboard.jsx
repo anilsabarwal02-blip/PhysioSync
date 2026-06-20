@@ -346,18 +346,7 @@ const Dashboard = () => {
             </button>
 
             {showNotifications && (
-              <div className="glass-panel" style={{
-                position: 'absolute',
-                top: '50px',
-                right: '0px',
-                width: '320px',
-                padding: '16px',
-                zIndex: 1000,
-                boxShadow: '0 12px 32px rgba(0, 0, 0, 0.15)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px'
-              }}>
+              <div className="glass-panel notification-dropdown">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
                   <h4 style={{ fontSize: '0.95rem', margin: 0, color: 'var(--text-main)' }}>Notifications</h4>
                   {notifications.some(n => !n.read) && (
