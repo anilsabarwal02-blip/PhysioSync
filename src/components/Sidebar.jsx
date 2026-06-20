@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Users, FileText, Calendar, Settings, MessageSquare, Mic, Video, Gamepad2, BrainCircuit, Watch, MonitorSmartphone, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Activity, Users, FileText, Calendar, Settings, MessageSquare, Mic, BrainCircuit, Watch, MonitorSmartphone, LogOut, ChevronLeft, ChevronRight, Trash2, Bone } from 'lucide-react';
 
 const Sidebar = ({ onLogout, onToggleAI, isAIAssistantOpen }) => {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -48,10 +48,6 @@ const Sidebar = ({ onLogout, onToggleAI, isAIAssistantOpen }) => {
           <Activity size={20} />
           <span>Dashboard</span>
         </NavLink>
-        <NavLink to="/logbook" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <FileText size={20} />
-          <span>Clinical Logbook</span>
-        </NavLink>
         <NavLink to="/appointments" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Calendar size={20} />
           <span>Appointments</span>
@@ -60,17 +56,14 @@ const Sidebar = ({ onLogout, onToggleAI, isAIAssistantOpen }) => {
           <Mic size={20} />
           <span>Voice Notes</span>
         </NavLink>
-        <NavLink to="/posture" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Video size={20} />
-          <span>Posture Analysis</span>
-        </NavLink>
-        <NavLink to="/gamified-rehab" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Gamepad2 size={20} />
-          <span>Gamified Rehab</span>
-        </NavLink>
+
         <NavLink to="/treatment-planner" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <BrainCircuit size={20} />
           <span>AI Rx Planner</span>
+        </NavLink>
+        <NavLink to="/anatomy-viewer" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <Bone size={20} />
+          <span>3D Anatomy</span>
         </NavLink>
         <NavLink to="/wearable-sync" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Watch size={20} />

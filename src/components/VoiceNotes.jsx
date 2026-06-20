@@ -1,11 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, Copy, Save, FileText } from 'lucide-react';
+import { api, getBackendStatus } from '../utils/api';
 
 const VoiceNotes = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [savedNotes, setSavedNotes] = useState([]);
+
+  useEffect(() => {
+    const fetchNotes = async () => {
+      try {
+        const data = await api.getNotes();
+        setSavedNotes(data);
+      } catch (err) {
+        if (!getBackendStatus()) {
+          const saved = localStorage.getItem('emr_notes_list');
+          if (saved) {
+            setSavedNotes(JSON.parse(saved));
+          }
+        }
+      }
+    };
+    fetchNotes();
+  }, []);
+  const [micBlocked, setMicBlocked] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
   const recognitionRef = useRef(null);
+  const simulationIntervalRef = useRef(null);
 
   useEffect(() => {
     // Initialize SpeechRecognition if available
@@ -34,7 +55,7 @@ const VoiceNotes = () => {
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         if (event.error === 'not-allowed') {
-          alert('Microphone access was denied. Please allow microphone access in your browser settings.');
+          setMicBlocked(true);
         }
         setIsRecording(false);
       };
@@ -46,26 +67,89 @@ const VoiceNotes = () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+      }
     };
   }, []);
 
+  const startSimulation = () => {
+    setMicBlocked(false);
+    setIsSimulating(true);
+    setIsRecording(true);
+    setTranscript('');
+    
+    const sampleText = "Patient complains of persistent right knee pain, particularly during deep flexion. On physical examination, there is mild joint effusion and tenderness along the medial joint line. Active range of motion is limited to 95 degrees. I recommend starting physical therapy twice a week, focusing on quadriceps strengthening and hamstring flexibility. Plan approved.";
+    
+    let index = 0;
+    const words = sampleText.split(' ');
+    
+    simulationIntervalRef.current = setInterval(() => {
+      if (index < words.length) {
+        setTranscript(prev => prev + (prev ? ' ' : '') + words[index]);
+        index++;
+      } else {
+        clearInterval(simulationIntervalRef.current);
+        setIsRecording(false);
+        setIsSimulating(false);
+      }
+    }, 350);
+  };
+
+  const stopSimulation = () => {
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+    }
+    setIsRecording(false);
+    setIsSimulating(false);
+  };
+
   const toggleRecording = () => {
+    if (isSimulating) {
+      stopSimulation();
+      return;
+    }
+
     if (!recognitionRef.current) {
-      alert("Voice recognition is not supported in this browser. Try Chrome or Edge.");
+      setMicBlocked(true);
       return;
     }
 
     if (isRecording) {
       recognitionRef.current.stop();
+      setIsRecording(false);
     } else {
-      recognitionRef.current.start();
+      setMicBlocked(false);
+      try {
+        recognitionRef.current.start();
+        setIsRecording(true);
+      } catch (err) {
+        console.error(err);
+        setIsRecording(false);
+      }
     }
-    setIsRecording(!isRecording);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!transcript.trim()) return;
-    setSavedNotes([{ id: Date.now(), text: transcript, date: new Date().toLocaleString() }, ...savedNotes]);
+    const noteData = {
+      text: transcript,
+      date: new Date().toLocaleString()
+    };
+    try {
+      const data = await api.saveNote(noteData);
+      setSavedNotes(data);
+    } catch (err) {
+      if (!getBackendStatus()) {
+        const localNewNote = {
+          id: Date.now(),
+          ...noteData
+        };
+        const updatedNotes = [localNewNote, ...savedNotes];
+        setSavedNotes(updatedNotes);
+        localStorage.setItem('emr_notes_list', JSON.stringify(updatedNotes));
+      }
+    }
     setTranscript('');
   };
 
@@ -101,6 +185,41 @@ const VoiceNotes = () => {
             </button>
           </div>
 
+          {micBlocked && (
+            <div style={{ 
+              padding: '16px', 
+              background: 'rgba(239, 68, 68, 0.06)', 
+              border: '1px solid rgba(239, 68, 68, 0.15)', 
+              borderRadius: '12px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '12px' 
+            }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '0.95rem' }}>Microphone Access Required</span>
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0, lineHeight: '1.5' }}>
+                Dictation requires browser microphone access. Please allow mic permissions in your browser address bar, or click below to run a clinical voice simulation demo.
+              </p>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  className="glass-button" 
+                  onClick={toggleRecording} 
+                  style={{ padding: '8px 16px', fontSize: '0.8rem', background: 'var(--primary)' }}
+                >
+                  Retry Mic Permission
+                </button>
+                <button 
+                  className="glass-button" 
+                  onClick={startSimulation} 
+                  style={{ padding: '8px 16px', fontSize: '0.8rem', background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
+                >
+                  Simulate Dictation (Demo)
+                </button>
+              </div>
+            </div>
+          )}
+
           <textarea 
             className="search-bar"
             style={{ 
@@ -118,7 +237,18 @@ const VoiceNotes = () => {
           />
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <button className="glass-button" style={{ background: 'var(--glass-bg)', display: 'flex', gap: '8px', alignItems: 'center' }} onClick={copyToClipboard}>
+            <button 
+              className="glass-button" 
+              style={{ 
+                background: 'var(--glass-bg)', 
+                color: 'var(--text-main)', 
+                border: '1px solid var(--border)', 
+                display: 'flex', 
+                gap: '8px', 
+                alignItems: 'center' 
+              }} 
+              onClick={copyToClipboard}
+            >
               <Copy size={16} /> Copy
             </button>
             <button className="glass-button" style={{ display: 'flex', gap: '8px', alignItems: 'center' }} onClick={handleSave}>

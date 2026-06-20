@@ -1,15 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  build: {
-    rollupOptions: {
-      external: ['@mediapipe/pose']
+  resolve: {
+    alias: {
+      '@mediapipe/pose': path.resolve(__dirname, './src/components/mediapipe-shim.js')
     }
-  },
-  optimizeDeps: {
-    exclude: ['@mediapipe/pose']
   }
 })

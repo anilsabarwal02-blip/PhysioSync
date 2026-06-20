@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Activity, Lock, Mail, User } from 'lucide-react';
+import { api, getBackendStatus } from '../utils/api';
 
 const Auth = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -7,38 +8,61 @@ const Auth = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.password || (isLogin && !formData.doctorId) || (!isLogin && !formData.name)) {
       setError('Please fill all required fields');
       return;
     }
 
-    if (isLogin) {
-      const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = storedUsers.find(u => u.doctorId === formData.doctorId && u.password === formData.password);
-      if (user) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        onLogin(user);
+    try {
+      if (isLogin) {
+        try {
+          const res = await api.login(formData.doctorId, formData.password);
+          onLogin(res.user);
+        } catch (backendErr) {
+          if (!getBackendStatus()) {
+            // Local fallback logic
+            const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = storedUsers.find(u => u.doctorId === formData.doctorId && u.password === formData.password);
+            if (user) {
+              localStorage.setItem('isAuthenticated', 'true');
+              localStorage.setItem('currentUser', JSON.stringify(user));
+              onLogin(user);
+            } else {
+              setError('Invalid Doctor ID or password (Offline Mode)');
+            }
+          } else {
+            setError(backendErr.message || 'Invalid Doctor ID or password');
+          }
+        }
       } else {
-        setError('Invalid Doctor ID or password');
+        try {
+          const res = await api.register(formData.name, formData.password);
+          setSuccessMsg(`Account created! Your unique Doctor ID is: ${res.doctor.doctorId}. Please save it.`);
+          setError('');
+          setIsLogin(true);
+          setFormData({ name: '', doctorId: res.doctor.doctorId, password: '' });
+        } catch (backendErr) {
+          if (!getBackendStatus()) {
+            // Local fallback registration
+            const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+            const newId = 'DR-' + Math.floor(1000 + Math.random() * 9000);
+            const newUser = { name: formData.name, doctorId: newId, password: formData.password };
+            storedUsers.push(newUser);
+            localStorage.setItem('users', JSON.stringify(storedUsers));
+            
+            setSuccessMsg(`Account created! Your unique Doctor ID is: ${newId}. Please save it. (Offline Mode)`);
+            setError('');
+            setIsLogin(true);
+            setFormData({ name: '', doctorId: newId, password: '' });
+          } else {
+            setError(backendErr.message || 'Registration failed');
+          }
+        }
       }
-    } else {
-      const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      
-      // Generate unique Doctor ID
-      const newId = 'DR-' + Math.floor(1000 + Math.random() * 9000);
-      
-      const newUser = { name: formData.name, doctorId: newId, password: formData.password };
-      storedUsers.push(newUser);
-      localStorage.setItem('users', JSON.stringify(storedUsers));
-      
-      // Show success message and switch to login
-      setSuccessMsg(`Account created! Your unique Doctor ID is: ${newId}. Please save it.`);
-      setError('');
-      setIsLogin(true);
-      setFormData({ name: '', doctorId: newId, password: '' });
+    } catch (err) {
+      setError(err.message || 'An unexpected error occurred');
     }
   };
 

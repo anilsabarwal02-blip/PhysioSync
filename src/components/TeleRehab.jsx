@@ -1,55 +1,941 @@
-import React from 'react';
-import { PhoneCall, PhoneOff, Video, Mic, Share, Maximize } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Phone, PhoneOff, Video, VideoOff, Mic, MicOff, 
+  Share, Maximize, Clock, Activity, RotateCcw, 
+  User, CheckCircle, ShieldAlert, Award, ChevronLeft
+} from 'lucide-react';
+import { api, getBackendStatus } from '../utils/api';
 
 const TeleRehab = () => {
+  const navigate = useNavigate();
+
+  // Call states
+  const [callState, setCallState] = useState('idle'); // 'idle' | 'ringing' | 'connected' | 'ended'
+  const [cameraActive, setCameraActive] = useState(true);
+  const [micActive, setMicActive] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [localStream, setLocalStream] = useState(null);
+
+  // Dynamic Patient Selection
+  const [patients, setPatients] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [doctorName, setDoctorName] = useState('Dr. Sharma');
+  
+  // Exercise config
+  const [exercise, setExercise] = useState('Knee Extension');
+  const [reps, setReps] = useState(0);
+
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const contractionRef = useRef(false);
+  const animationFrameId = useRef(null);
+
+  // Automated diagnosis exercise mapping
+  const getDefaultExercise = (condition) => {
+    if (!condition) return 'Knee Extension';
+    const cond = condition.toLowerCase();
+    if (cond.includes('shoulder') || cond.includes('rotator') || cond.includes('arm')) {
+      return 'Shoulder Abduction';
+    }
+    if (cond.includes('back') || cond.includes('spine') || cond.includes('disc') || cond.includes('lumbar') || cond.includes('neck')) {
+      return 'Spine Flexion';
+    }
+    return 'Knee Extension';
+  };
+
+  // Fetch patients list and doctor profile on mount
+  useEffect(() => {
+    // Fetch doctor name
+    const currentUserStr = localStorage.getItem('currentUser');
+    if (currentUserStr) {
+      const user = JSON.parse(currentUserStr);
+      setDoctorName(user.name || 'Dr. Sharma');
+    }
+
+    const fetchPatients = async () => {
+      let patientsList = [];
+      try {
+        patientsList = await api.getPatients();
+      } catch (err) {
+        if (!getBackendStatus()) {
+          patientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
+        }
+      }
+      
+      // Fallback patients database if empty
+      if (!patientsList || patientsList.length === 0) {
+        patientsList = [
+          { id: 'p1', name: 'Rahul Verma', condition: 'Knee Ligament Post-Op Rehab', age: 28, gender: 'Male' },
+          { id: 'p2', name: 'Aaryan Sharma', condition: 'Shoulder Rotator Cuff Tear', age: 34, gender: 'Male' },
+          { id: 'p3', name: 'Priya Patel', condition: 'Lumbar Herniated Disc Rehab', age: 41, gender: 'Female' }
+        ];
+      }
+      
+      setPatients(patientsList);
+      setSelectedPatient(patientsList[0]);
+      setExercise(getDefaultExercise(patientsList[0].condition));
+    };
+
+    fetchPatients();
+  }, []);
+
+  // Update exercise when patient changes
+  const handlePatientChange = (patientId) => {
+    const patient = patients.find(p => (p._id || p.id) === patientId);
+    if (patient) {
+      setSelectedPatient(patient);
+      setExercise(getDefaultExercise(patient.condition));
+    }
+  };
+
+  // Ringing connecting timer
+  useEffect(() => {
+    let timer;
+    if (callState === 'ringing') {
+      timer = setTimeout(() => {
+        setCallState('connected');
+      }, 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [callState]);
+
+  // Duration timer
+  useEffect(() => {
+    if (callState !== 'connected') {
+      setDuration(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setDuration(d => d + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [callState]);
+
+  // Media Stream Webcam handler
+  useEffect(() => {
+    if (callState === 'connected' && cameraActive) {
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+          setLocalStream(stream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        })
+        .catch(err => {
+          console.warn("Webcam access blocked or unavailable, rendering simulator mode.", err);
+        });
+    } else {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+      }
+    }
+
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [callState, cameraActive]);
+
+  const toggleCamera = () => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setCameraActive(videoTrack.enabled);
+      }
+    } else {
+      setCameraActive(!cameraActive);
+    }
+  };
+
+  const toggleMic = () => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setMicActive(audioTrack.enabled);
+      }
+    } else {
+      setMicActive(!micActive);
+    }
+  };
+
+  const toggleScreenShare = () => {
+    setIsScreenSharing(!isScreenSharing);
+  };
+
+  const handleEndCall = () => {
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+    setCallState('ended');
+  };
+
+  const handleStartCall = () => {
+    setCallState('ringing');
+    setReps(0);
+    setCameraActive(true);
+    setMicActive(true);
+    setIsScreenSharing(false);
+  };
+
+  // Draw simulated skeleton based on active exercise
+  const drawSkeleton = (ctx, width, height) => {
+    ctx.clearRect(0, 0, width, height);
+
+    // Dark grid pattern background
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    const gridSize = 40;
+    for (let x = 0; x < width; x += gridSize) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+    }
+    for (let y = 0; y < height; y += gridSize) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+    }
+
+    // Animation cycle calculation
+    const cycle = (Date.now() / 1500) % (2 * Math.PI);
+    const progress = Math.abs(Math.sin(cycle));
+    
+    // Responsive scaling
+    const scale = Math.min(width / 400, height / 400) * 0.9;
+    const offsetX = width / 2;
+    const offsetY = height / 2;
+
+    if (exercise === 'Shoulder Abduction') {
+      // 1. STANDING SHOULDER ABDUCTION (FRONT PROFILE)
+      const theta = Math.PI / 2 - (150 * Math.PI / 180) * progress; // Arm raises from 90° straight down to -60° overhead
+      const shoulderAngleDeg = Math.round(progress * 150);
+
+      const getCoord = (x, y) => ({
+        x: offsetX + (x - 200) * scale,
+        y: offsetY + (y - 200) * scale
+      });
+
+      const head = getCoord(200, 110);
+      const neck = getCoord(200, 145);
+      const hip = getCoord(200, 270);
+      
+      const leftShoulder = getCoord(170, 170);
+      const leftElbow = getCoord(170, 225);
+      const leftHand = getCoord(170, 270);
+
+      const rightShoulder = getCoord(230, 170);
+      const armLength = 65;
+      const rightElbow = {
+        x: rightShoulder.x + armLength * scale * Math.cos(theta),
+        y: rightShoulder.y + armLength * scale * Math.sin(theta)
+      };
+      const rightHand = {
+        x: rightElbow.x + 55 * scale * Math.cos(theta),
+        y: rightElbow.y + 55 * scale * Math.sin(theta)
+      };
+
+      const leftHip = getCoord(185, 270);
+      const leftAnkle = getCoord(185, 350);
+      const rightHip = getCoord(215, 270);
+      const rightAnkle = getCoord(215, 350);
+
+      // Draw bones
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 5 * scale;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Spine & Torso
+      ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(hip.x, hip.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(leftShoulder.x, leftShoulder.y); ctx.lineTo(rightShoulder.x, rightShoulder.y); ctx.stroke();
+
+      // Left Arm (Static down)
+      ctx.beginPath(); ctx.moveTo(leftShoulder.x, leftShoulder.y); ctx.lineTo(leftElbow.x, leftElbow.y); ctx.lineTo(leftHand.x, leftHand.y); ctx.stroke();
+      // Right Arm (Active Abduction)
+      ctx.beginPath(); ctx.moveTo(rightShoulder.x, rightShoulder.y); ctx.lineTo(rightElbow.x, rightElbow.y); ctx.lineTo(rightHand.x, rightHand.y); ctx.stroke();
+
+      // Legs
+      ctx.beginPath(); ctx.moveTo(leftHip.x, leftHip.y); ctx.lineTo(leftAnkle.x, leftAnkle.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rightHip.x, rightHip.y); ctx.lineTo(rightAnkle.x, rightAnkle.y); ctx.stroke();
+
+      // Head
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath(); ctx.arc(head.x, head.y, 18 * scale, 0, 2 * Math.PI); ctx.fill();
+
+      // Joints
+      const joints = [neck, leftShoulder, leftElbow, leftHand, rightShoulder, leftHip, leftAnkle, rightHip, rightAnkle];
+      ctx.fillStyle = 'var(--primary)';
+      joints.forEach(j => {
+        ctx.beginPath(); ctx.arc(j.x, j.y, 5 * scale, 0, 2 * Math.PI); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 * scale; ctx.stroke();
+      });
+
+      // Highlight active Right Shoulder Abduction
+      ctx.fillStyle = 'var(--accent)';
+      ctx.beginPath(); ctx.arc(rightShoulder.x, rightShoulder.y, 7 * scale, 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2 * scale; ctx.stroke();
+      ctx.beginPath(); ctx.arc(rightElbow.x, rightElbow.y, 5 * scale, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(rightHand.x, rightHand.y, 5 * scale, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+
+      // Draw active angle arc indicator
+      ctx.strokeStyle = 'var(--accent)';
+      ctx.lineWidth = 3 * scale;
+      ctx.beginPath();
+      ctx.arc(rightShoulder.x, rightShoulder.y, 25 * scale, Math.PI / 2, Math.PI / 2 + (theta - Math.PI / 2), true);
+      ctx.stroke();
+
+      // HUD text overlay labels
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(14 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`Shoulder Abduction: ${shoulderAngleDeg}°`, rightShoulder.x + 20 * scale, rightShoulder.y - 10 * scale);
+      
+      ctx.fillStyle = 'var(--accent)';
+      ctx.font = `bold ${Math.round(10 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`TARGET: 150° | REPS: ${reps}/15`, 24 * scale, height - 38 * scale);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(11 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`EXERCISE: Shoulder Abduction`, 24 * scale, height - 56 * scale);
+
+      return { angleVal: shoulderAngleDeg, threshold: 120, recovery: 40 };
+
+    } else if (exercise === 'Spine Flexion') {
+      // 2. STANDING SPINE FLEXION (SIDE PROFILE FORWARD BEND)
+      const flexionAngle = (80 * Math.PI / 180) * progress; // Bend forward from 0 to 80 deg
+      const flexionAngleDeg = Math.round(progress * 80);
+
+      const getCoord = (x, y) => ({
+        x: offsetX + (x - 200) * scale,
+        y: offsetY + (y - 180) * scale
+      });
+
+      const foot = getCoord(190, 340);
+      const knee = getCoord(190, 275);
+      const hip = getCoord(190, 210);
+
+      // Spine bends forward relative to hip
+      const neck = {
+        x: hip.x - 70 * scale * Math.sin(flexionAngle),
+        y: hip.y - 70 * scale * Math.cos(flexionAngle)
+      };
+      const head = {
+        x: neck.x - 18 * scale * Math.sin(flexionAngle),
+        y: neck.y - 18 * scale * Math.cos(flexionAngle)
+      };
+
+      // Arms hang straight down from shoulder
+      const shoulder = neck;
+      const hand = {
+        x: shoulder.x,
+        y: shoulder.y + 60 * scale
+      };
+
+      // Draw bones
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 5 * scale;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Legs
+      ctx.beginPath(); ctx.moveTo(foot.x, foot.y); ctx.lineTo(knee.x, knee.y); ctx.lineTo(hip.x, hip.y); ctx.stroke();
+      // Torso / Spine Bended
+      ctx.beginPath(); ctx.moveTo(hip.x, hip.y); ctx.lineTo(neck.x, neck.y); ctx.stroke();
+      // Arm hanging down
+      ctx.beginPath(); ctx.moveTo(shoulder.x, shoulder.y); ctx.lineTo(hand.x, hand.y); ctx.stroke();
+
+      // Head
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath(); ctx.arc(head.x, head.y, 18 * scale, 0, 2 * Math.PI); ctx.fill();
+
+      // Joints
+      const joints = [foot, knee, neck, hand];
+      ctx.fillStyle = 'var(--primary)';
+      joints.forEach(j => {
+        ctx.beginPath(); ctx.arc(j.x, j.y, 5 * scale, 0, 2 * Math.PI); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 * scale; ctx.stroke();
+      });
+
+      // Highlight active Hip joint
+      ctx.fillStyle = 'var(--accent)';
+      ctx.beginPath(); ctx.arc(hip.x, hip.y, 7 * scale, 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2 * scale; ctx.stroke();
+
+      // Draw hip flexion arc
+      ctx.strokeStyle = 'var(--accent)';
+      ctx.lineWidth = 3 * scale;
+      ctx.beginPath();
+      ctx.arc(hip.x, hip.y, 25 * scale, -Math.PI / 2, -Math.PI / 2 - flexionAngle, true);
+      ctx.stroke();
+
+      // HUD text labels
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(14 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`Spine Flexion: ${flexionAngleDeg}°`, hip.x + 20 * scale, hip.y - 15 * scale);
+      
+      ctx.fillStyle = 'var(--accent)';
+      ctx.font = `bold ${Math.round(10 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`TARGET: 70° | REPS: ${reps}/15`, 24 * scale, height - 38 * scale);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(11 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`EXERCISE: Spine Flexion`, 24 * scale, height - 56 * scale);
+
+      return { angleVal: flexionAngleDeg, threshold: 60, recovery: 20 };
+
+    } else {
+      // 3. SITTING KNEE EXTENSION (DEFAULT)
+      const theta = Math.PI / 2 - (Math.PI / 2 - 0.15) * progress; // Knee extension angle
+      const kneeAngleDeg = Math.round(180 - (theta * 180 / Math.PI));
+
+      const getCoord = (x, y) => ({
+        x: offsetX + (x - 200) * scale,
+        y: offsetY + (y - 180) * scale
+      });
+
+      const head = getCoord(170, 110);
+      const neck = getCoord(170, 150);
+      const shoulder = getCoord(170, 175);
+      const elbow = getCoord(200, 205);
+      const hand = getCoord(215, 190);
+      const hip = getCoord(180, 260);
+      const knee = getCoord(265, 260);
+      
+      const shinLength = 85;
+      const ankle = {
+        x: knee.x + shinLength * scale * Math.cos(theta),
+        y: knee.y + shinLength * scale * Math.sin(theta)
+      };
+      const foot = {
+        x: ankle.x + 20 * scale,
+        y: ankle.y
+      };
+
+      // Draw reference circular target
+      ctx.strokeStyle = 'rgba(13, 148, 136, 0.15)';
+      ctx.lineWidth = 2 * scale;
+      ctx.beginPath(); ctx.arc(knee.x, knee.y, 60 * scale, 0, 2 * Math.PI); ctx.stroke();
+
+      // Draw main bones
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 5 * scale;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Spine
+      ctx.beginPath(); ctx.moveTo(neck.x, neck.y); ctx.lineTo(shoulder.x, shoulder.y); ctx.lineTo(hip.x, hip.y); ctx.stroke();
+      // Femur
+      ctx.beginPath(); ctx.moveTo(hip.x, hip.y); ctx.lineTo(knee.x, knee.y); ctx.stroke();
+      // Shin
+      ctx.beginPath(); ctx.moveTo(knee.x, knee.y); ctx.lineTo(ankle.x, ankle.y); ctx.stroke();
+      // Foot
+      ctx.beginPath(); ctx.moveTo(ankle.x, ankle.y); ctx.lineTo(foot.x, foot.y); ctx.stroke();
+      // Arm
+      ctx.beginPath(); ctx.moveTo(shoulder.x, shoulder.y); ctx.lineTo(elbow.x, elbow.y); ctx.lineTo(hand.x, hand.y); ctx.stroke();
+
+      // Draw Head
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath(); ctx.arc(head.x, head.y, 20 * scale, 0, 2 * Math.PI); ctx.fill();
+
+      // Draw joints
+      const joints = [neck, shoulder, elbow, hand, hip, ankle];
+      ctx.fillStyle = 'var(--primary)';
+      joints.forEach(j => {
+        ctx.beginPath(); ctx.arc(j.x, j.y, 5 * scale, 0, 2 * Math.PI); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 * scale; ctx.stroke();
+      });
+
+      // Highlight active Knee tracking joint
+      ctx.fillStyle = 'var(--accent)';
+      ctx.beginPath(); ctx.arc(knee.x, knee.y, 7 * scale, 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2 * scale; ctx.stroke();
+
+      // Draw active joint angle arc
+      ctx.strokeStyle = 'var(--accent)';
+      ctx.lineWidth = 3 * scale;
+      ctx.beginPath();
+      ctx.arc(knee.x, knee.y, 30 * scale, Math.PI, Math.PI + (Math.PI - theta));
+      ctx.stroke();
+
+      // Text Overlay Labels
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(14 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`Knee Flexion: ${kneeAngleDeg}°`, knee.x + 15 * scale, knee.y - 15 * scale);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = `${Math.round(11 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`Hip Angle: 90°`, hip.x - 30 * scale, hip.y - 12 * scale);
+
+      ctx.fillStyle = 'var(--accent)';
+      ctx.font = `bold ${Math.round(10 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`TARGET: 170° | REPS: ${reps}/15`, 24 * scale, height - 38 * scale);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(11 * scale)}px 'Outfit', sans-serif`;
+      ctx.fillText(`EXERCISE: Knee Extension`, 24 * scale, height - 56 * scale);
+
+      return { angleVal: kneeAngleDeg, threshold: 155, recovery: 110 };
+    }
+  };
+
+  // Canvas loop
+  useEffect(() => {
+    if (callState !== 'connected') return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    const handleResize = () => {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    const render = () => {
+      const { angleVal, threshold, recovery } = drawSkeleton(ctx, canvas.width, canvas.height);
+      
+      // Automatic reps counter based on dynamic thresholding
+      if (angleVal > threshold) {
+        if (!contractionRef.current) {
+          contractionRef.current = true;
+          setReps(r => r + 1);
+        }
+      } else if (angleVal < recovery) {
+        contractionRef.current = false;
+      }
+
+      animationFrameId.current = requestAnimationFrame(render);
+    };
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId.current);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [callState, exercise]);
+
+  const formatTime = (secs) => {
+    const mins = Math.floor(secs / 60);
+    const remaining = secs % 60;
+    return `${mins.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}`;
+  };
+
+  const getInitials = (name) => {
+    if (!name) return 'DS';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
   return (
     <div className="main-content">
-      <header className="dashboard-header" style={{ marginBottom: '20px' }}>
+      {/* Header */}
+      <header className="dashboard-header" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {callState === 'idle' && (
+          <button 
+            className="glass-button" 
+            onClick={() => navigate('/dashboard')} 
+            style={{ padding: '8px', display: 'flex', borderRadius: '50%' }}
+            title="Back to Dashboard"
+          >
+            <ChevronLeft size={20} />
+          </button>
+        )}
         <div>
           <h1>Tele-Rehab Video Consult 🌐</h1>
           <p>Remote physiotherapy sessions with live AI movement tracking.</p>
         </div>
       </header>
 
-      <div className="glass-panel" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '600px', overflow: 'hidden' }}>
-        <div style={{ flex: 1, position: 'relative', background: '#000', display: 'flex' }}>
+      {/* CALL STATE: IDLE */}
+      {callState === 'idle' && (
+        <div className="glass-panel" style={{ padding: '32px', maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* Main Remote Video (Patient) */}
-          <div style={{ flex: 1, background: 'linear-gradient(45deg, #1e1b4b, #0f172a)', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-            <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-              <Video size={48} style={{ opacity: 0.3, margin: '0 auto 10px' }} />
-              <p>Waiting for patient (Rahul Verma) to join...</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+            <h2 style={{ fontSize: '1.4rem', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <User size={22} color="var(--primary)" /> Setup Tele-Rehab Session
+            </h2>
+            <span style={{ fontSize: '0.8rem', background: 'var(--primary-glow)', color: 'var(--primary)', padding: '4px 12px', borderRadius: '12px', fontWeight: 'bold' }}>
+              Host: {doctorName}
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
+            
+            {/* Left: Patient Select */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>Select Patient</label>
+                <select 
+                  className="search-bar" 
+                  value={selectedPatient ? (selectedPatient._id || selectedPatient.id) : ''} 
+                  onChange={(e) => handlePatientChange(e.target.value)}
+                  style={{ width: '100%', borderRadius: '8px', padding: '10px', color: '#000', fontSize: '0.95rem' }}
+                >
+                  {patients.map(p => (
+                    <option key={p._id || p.id} value={p._id || p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedPatient && (
+                <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.3)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Age / Gender</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{selectedPatient.age || 'N/A'} Yrs / {selectedPatient.gender || 'N/A'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Clinical Diagnosis</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--primary)', marginTop: '2px' }}>{selectedPatient.condition}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* AI Overlay Box on Video */}
-            <div style={{ position: 'absolute', top: '20px', left: '20px', background: 'rgba(0,0,0,0.6)', padding: '10px', borderRadius: '8px', borderLeft: '3px solid var(--accent)' }}>
-              <p style={{ margin: 0, color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 'bold' }}>AI Tracking Active</p>
-              <p style={{ margin: 0, color: 'white', fontSize: '0.8rem' }}>Angles will appear here once connected.</p>
+            {/* Right: Exercise and Settings */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>Target Bio-Feedback Exercise</label>
+                <select 
+                  className="search-bar" 
+                  value={exercise} 
+                  onChange={(e) => setExercise(e.target.value)}
+                  style={{ width: '100%', borderRadius: '8px', padding: '10px', color: '#000', fontSize: '0.95rem' }}
+                >
+                  <option value="Knee Extension">Knee Extension (Leg / Knee Rehab)</option>
+                  <option value="Shoulder Abduction">Shoulder Abduction (Shoulder Raise)</option>
+                  <option value="Spine Flexion">Spine Flexion (Back Flexion)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="glass-panel" style={{ padding: '10px', borderRadius: '8px', textAlign: 'center', background: 'rgba(255,255,255,0.3)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Target reps</span>
+                  <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '0.9rem' }}>15 Reps</p>
+                </div>
+                <div className="glass-panel" style={{ padding: '10px', borderRadius: '8px', textAlign: 'center', background: 'rgba(255,255,255,0.3)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>AI Tracking</span>
+                  <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--accent)' }}>Active (2D)</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <button 
+            onClick={handleStartCall}
+            className="glass-button" 
+            style={{ 
+              padding: '14px 40px', 
+              fontSize: '1.05rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: '10px', 
+              borderRadius: '30px', 
+              background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: '600',
+              marginTop: '10px'
+            }}
+          >
+            <Phone size={18} /> Connect Video Consult
+          </button>
+        </div>
+      )}
+
+      {/* CALL STATE: RINGING */}
+      {callState === 'ringing' && selectedPatient && (
+        <div className="glass-panel" style={{ padding: '60px', height: '550px', background: 'linear-gradient(135deg, #0f172a, #1e1b4b)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '30px', position: 'relative' }}>
+          <div className="ringing-indicator" style={{ position: 'relative' }}>
+            <div className="avatar" style={{ width: '100px', height: '100px', fontSize: '2.5rem', background: 'var(--primary)', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '50%', boxShadow: '0 0 0 10px rgba(13, 148, 136, 0.2)' }}>
+              {getInitials(selectedPatient.name)}
+            </div>
+            {/* Pulsing visual circles */}
+            <div style={{
+              position: 'absolute',
+              top: '-10px',
+              left: '-10px',
+              right: '-10px',
+              bottom: '-10px',
+              border: '2px solid var(--primary)',
+              borderRadius: '50%',
+              animation: 'pulse 1.5s infinite',
+              opacity: 0.5
+            }} />
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ color: 'white', marginBottom: '8px' }}>Calling {selectedPatient.name}...</h2>
+            <p style={{ color: '#94a3b8' }}>Establishing secure connection with live AI visual tracking</p>
+          </div>
+          <button 
+            onClick={() => setCallState('idle')}
+            className="glass-button" 
+            style={{ 
+              background: 'var(--danger)', 
+              color: 'white', 
+              borderRadius: '30px', 
+              padding: '12px 30px', 
+              border: 'none', 
+              fontWeight: '600', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px' 
+            }}
+          >
+            <PhoneOff size={18} /> Cancel Call
+          </button>
+        </div>
+      )}
+
+      {/* CALL STATE: CONNECTED */}
+      {callState === 'connected' && selectedPatient && (
+        <div className="glass-panel" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '580px', overflow: 'hidden', position: 'relative', background: '#090d16' }}>
+          
+          {/* Main Video Stream Window */}
+          <div style={{ flex: 1, position: 'relative', display: 'flex', width: '100%', minHeight: 0 }}>
+            
+            {/* Canvas for Patient Stick-Skeleton Simulation */}
+            <div style={{ flex: 1, position: 'relative', background: 'radial-gradient(circle, #101625 0%, #080a10 100%)', width: '100%', height: '100%', minHeight: 0 }}>
+              <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'block' }} />
+              
+              {/* AI Overlay status tag */}
+              <div style={{ position: 'absolute', top: '20px', left: '20px', background: 'rgba(9, 13, 22, 0.8)', padding: '10px 16px', borderRadius: '12px', borderLeft: '3px solid var(--accent)', backdropFilter: 'blur(8px)', zIndex: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Activity size={14} color="var(--accent)" />
+                  <p style={{ margin: 0, color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 'bold' }}>AI Tracking Active</p>
+                </div>
+                <p style={{ margin: '4px 0 0 0', color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem' }}>Confidence: 98% | Joints: 17/17</p>
+              </div>
+
+              {/* Call Stats header overlay */}
+              <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', gap: '10px', alignItems: 'center', zIndex: 10 }}>
+                {isScreenSharing && (
+                  <span style={{ background: 'rgba(14, 165, 233, 0.2)', border: '1px solid var(--accent)', color: 'var(--accent)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '600' }}>
+                    Sharing Screen
+                  </span>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(9, 13, 22, 0.8)', padding: '6px 12px', borderRadius: '12px', backdropFilter: 'blur(8px)' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+                  <span style={{ color: '#fff', fontSize: '0.8rem', fontWeight: '600', fontFamily: 'monospace' }}>{formatTime(duration)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Doctor Local Webcam Picture-in-Picture PIP */}
+            <div style={{ 
+              position: 'absolute', 
+              bottom: '20px', 
+              right: '20px', 
+              width: '180px', 
+              height: '135px', 
+              background: '#0f172a', 
+              borderRadius: '12px', 
+              border: '2px solid rgba(255,255,255,0.15)', 
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              overflow: 'hidden', 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center',
+              zIndex: 20 
+            }}>
+              {cameraActive ? (
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', color: '#94a3b8' }}>
+                  <div className="avatar" style={{ width: '36px', height: '36px', background: 'var(--secondary)', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '50%', fontSize: '0.85rem' }}>
+                    {getInitials(doctorName)}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Camera Off</span>
+                </div>
+              )}
+              {/* Tiny bottom label */}
+              <div style={{ position: 'absolute', bottom: '6px', left: '8px', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', color: '#fff' }}>
+                You ({doctorName})
+              </div>
             </div>
           </div>
 
-          {/* Local Video (Doctor PIP) */}
-          <div style={{ position: 'absolute', bottom: '20px', right: '20px', width: '200px', height: '150px', background: '#1e293b', borderRadius: '12px', border: '2px solid var(--border)', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Doctor Camera</span>
+          {/* Connected Call Bottom Control Bar */}
+          <div style={{ 
+            padding: '16px 24px', 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            gap: '16px', 
+            background: '#0b101c', 
+            borderTop: '1px solid rgba(255,255,255,0.08)' 
+          }}>
+            <button 
+              onClick={toggleMic}
+              style={{ 
+                borderRadius: '50%', 
+                width: '46px', 
+                height: '46px', 
+                border: 'none',
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                background: micActive ? 'rgba(255,255,255,0.08)' : 'var(--danger)',
+                color: '#fff',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title={micActive ? "Mute Microphone" : "Unmute Microphone"}
+            >
+              {micActive ? <Mic size={18} /> : <MicOff size={18} />}
+            </button>
+
+            <button 
+              onClick={toggleCamera}
+              style={{ 
+                borderRadius: '50%', 
+                width: '46px', 
+                height: '46px', 
+                border: 'none',
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                background: cameraActive ? 'rgba(255,255,255,0.08)' : 'var(--danger)',
+                color: '#fff',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title={cameraActive ? "Turn Camera Off" : "Turn Camera On"}
+            >
+              {cameraActive ? <Video size={18} /> : <VideoOff size={18} />}
+            </button>
+
+            <button 
+              onClick={handleEndCall}
+              style={{ 
+                borderRadius: '24px', 
+                padding: '0 24px', 
+                height: '46px',
+                border: 'none',
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                gap: '8px',
+                background: 'var(--danger)',
+                color: '#fff',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)'
+              }}
+            >
+              <PhoneOff size={16} /> End Call
+            </button>
+
+            <button 
+              onClick={toggleScreenShare}
+              style={{ 
+                borderRadius: '50%', 
+                width: '46px', 
+                height: '46px', 
+                border: 'none',
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                background: isScreenSharing ? 'var(--primary)' : 'rgba(255,255,255,0.08)',
+                color: '#fff',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
+            >
+              <Share size={18} />
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Video Call Controls */}
-        <div style={{ padding: '20px', display: 'flex', justifyContent: 'center', gap: '20px', background: 'var(--bg-sidebar)' }}>
-          <button className="glass-button" style={{ borderRadius: '50%', width: '50px', height: '50px', padding: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--glass-bg)' }}>
-            <Mic size={20} />
-          </button>
-          <button className="glass-button" style={{ borderRadius: '50%', width: '50px', height: '50px', padding: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--glass-bg)' }}>
-            <Video size={20} />
-          </button>
-          <button className="glass-button" style={{ borderRadius: '30px', padding: '0 30px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#ef4444' }}>
-            <PhoneOff size={20} style={{ marginRight: '10px' }} /> End Call
-          </button>
-          <button className="glass-button" style={{ borderRadius: '50%', width: '50px', height: '50px', padding: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--glass-bg)' }}>
-            <Share size={20} />
-          </button>
+      {/* CALL STATE: ENDED */}
+      {callState === 'ended' && selectedPatient && (
+        <div className="glass-panel" style={{ padding: '40px', maxWidth: '600px', margin: '0 auto', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '2px solid var(--primary)', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary)' }}>
+            <Award size={40} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.8rem', marginBottom: '8px' }}>Session Completed</h2>
+            <p style={{ color: 'var(--text-muted)' }}>{selectedPatient.name} • {selectedPatient.condition}</p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+            <div className="glass-panel" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Clock size={18} color="var(--primary)" />
+                <span style={{ fontSize: '0.9rem' }}>Call Duration</span>
+              </div>
+              <span style={{ fontWeight: 'bold' }}>{formatTime(duration)}</span>
+            </div>
+            
+            <div className="glass-panel" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Activity size={18} color="var(--accent)" />
+                <span style={{ fontSize: '0.9rem' }}>AI Tracking Accuracy</span>
+              </div>
+              <span style={{ fontWeight: 'bold', color: 'var(--accent)' }}>96% Avg</span>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CheckCircle size={18} style={{ color: '#10b981' }} />
+                <span style={{ fontSize: '0.9rem' }}>{exercise} Completed</span>
+              </div>
+              <span style={{ fontWeight: 'bold', color: '#10b981' }}>{reps} Reps / 1 Set</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+            <button 
+              onClick={handleStartCall}
+              className="glass-button" 
+              style={{ 
+                padding: '12px 24px', 
+                fontSize: '0.9rem', 
+                borderRadius: '8px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                border: 'none',
+                cursor: 'pointer' 
+              }}
+            >
+              <RotateCcw size={16} /> Restart Session
+            </button>
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="glass-button" 
+              style={{ 
+                padding: '12px 24px', 
+                fontSize: '0.9rem', 
+                borderRadius: '8px', 
+                background: 'rgba(255,255,255,0.08)',
+                color: 'var(--text-main)',
+                border: '1px solid var(--border)',
+                cursor: 'pointer' 
+              }}
+            >
+              Return to Dashboard
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

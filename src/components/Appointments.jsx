@@ -1,22 +1,105 @@
-import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, MapPin, User, Video, Plus, Search, FileText, ChevronDown, ChevronUp, CheckCircle, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon, Clock, MapPin, User, Video, Plus, Search, FileText, ChevronDown, ChevronUp, CheckCircle, X, Trash2 } from 'lucide-react';
+import { api, getBackendStatus } from '../utils/api';
 
 const Appointments = () => {
-  const [appointments, setAppointments] = useState([
-    { id: 1, patient: 'Rahul Verma', type: 'In-Clinic', treatment: 'Post-Op ACL Rehab', time: '10:00 AM', duration: '45 min', status: 'Confirmed', notes: 'Patient has reported mild swelling after last session. Focus on gentle ROM today.' },
-    { id: 2, patient: 'Priya Sharma', type: 'Tele-Rehab', treatment: 'Cervical Spondylosis', time: '11:30 AM', duration: '30 min', status: 'Pending', notes: 'Needs link for video call. Review ergonomic setup at home.' },
-    { id: 3, patient: 'Vikram Singh', type: 'In-Clinic', treatment: 'Frozen Shoulder Assessment', time: '02:00 PM', duration: '60 min', status: 'Confirmed', notes: 'First visit. Complete initial assessment forms.' },
-    { id: 4, patient: 'Anjali Desai', type: 'In-Clinic', treatment: 'Lumbar Strain', time: '04:15 PM', duration: '45 min', status: 'Cancelled', notes: 'Cancelled due to personal emergency.' },
-  ]);
+  const [appointments, setAppointments] = useState([]);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        const data = await api.getAppointments();
+        setAppointments(data);
+      } catch (err) {
+        if (!getBackendStatus()) {
+          const saved = localStorage.getItem('appointments_list');
+          if (saved) {
+            setAppointments(JSON.parse(saved));
+          } else {
+            setAppointments([]);
+          }
+        }
+      }
+    };
+    fetchAppointments();
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('All'); // 'All', 'In-Clinic', 'Tele-Rehab'
   const [expandedId, setExpandedId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const filteredAppointments = appointments.filter(app => 
-    app.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.treatment.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Form input states
+  const [newPatientName, setNewPatientName] = useState('');
+  const [newDate, setNewDate] = useState('');
+  const [newType, setNewType] = useState('In-Clinic Session');
+  const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+
+  const formatTime12Hour = (timeStr) => {
+    if (!timeStr) return '';
+    const [hoursStr, minutesStr] = timeStr.split(':');
+    let hours = parseInt(hoursStr, 10);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    return `${hours}:${minutesStr} ${ampm}`;
+  };
+
+  const handleSaveAppointment = async () => {
+    if (!newPatientName.trim() || !newDate) {
+      alert("Please fill in all fields (Name and Date) to schedule the appointment.");
+      return;
+    }
+
+    const typeParsed = newType.includes('Tele-Rehab') ? 'Tele-Rehab' : 'In-Clinic';
+    
+    // Auto-assign current time of creation as default time
+    const now = new Date();
+    const currentHours = String(now.getHours()).padStart(2, '0');
+    const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+    const defaultTimeFormatted = formatTime12Hour(`${currentHours}:${currentMinutes}`);
+
+    const appData = {
+      patient: newPatientName,
+      type: typeParsed,
+      treatment: 'General Physiotherapy',
+      time: defaultTimeFormatted || '10:00 AM',
+      duration: '45 min',
+      status: 'Confirmed',
+      notes: 'Scheduled appointment. Initial clinical notes pending session execution.'
+    };
+
+    try {
+      const savedApp = await api.createAppointment(appData);
+      setAppointments([savedApp, ...appointments]);
+    } catch (err) {
+      if (!getBackendStatus()) {
+        const newApp = {
+          id: Date.now(),
+          ...appData
+        };
+        const updatedApps = [newApp, ...appointments];
+        setAppointments(updatedApps);
+        localStorage.setItem('appointments_list', JSON.stringify(updatedApps));
+      }
+    }
+    
+    // Reset form states
+    setNewPatientName('');
+    setNewDate('');
+    setNewType('In-Clinic Session');
+    setShowAddModal(false);
+  };
+
+  const inClinicCount = appointments.filter(app => app.type === 'In-Clinic').length;
+  const teleRehabCount = appointments.filter(app => app.type === 'Tele-Rehab').length;
+
+  const filteredAppointments = appointments.filter(app => {
+    const matchesSearch = app.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          app.treatment.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterType === 'All' || app.type === filterType;
+    return matchesSearch && matchesFilter;
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -63,17 +146,45 @@ const Appointments = () => {
               </div>
               <div>
                 <h3 style={{ margin: 0 }}>Today</h3>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>4 Sessions Scheduled</p>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{appointments.length} Sessions Scheduled</p>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px', background: 'var(--glass-bg)', borderRadius: '8px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>In-Clinic:</span>
-                <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>3</span>
+              <div 
+                onClick={() => setFilterType(filterType === 'In-Clinic' ? 'All' : 'In-Clinic')}
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  fontSize: '0.9rem', 
+                  padding: '8px 12px', 
+                  background: filterType === 'In-Clinic' ? 'rgba(13, 148, 136, 0.15)' : 'var(--glass-bg)', 
+                  border: filterType === 'In-Clinic' ? '1px solid var(--primary)' : '1px solid transparent',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                title={filterType === 'In-Clinic' ? 'Click to show all appointments' : 'Click to filter by In-Clinic'}
+              >
+                <span style={{ color: filterType === 'In-Clinic' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: filterType === 'In-Clinic' ? '600' : 'normal' }}>In-Clinic:</span>
+                <span style={{ fontWeight: '700', color: filterType === 'In-Clinic' ? 'var(--primary)' : 'var(--text-main)' }}>{inClinicCount}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px', background: 'var(--glass-bg)', borderRadius: '8px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Tele-Rehab:</span>
-                <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>1</span>
+              <div 
+                onClick={() => setFilterType(filterType === 'Tele-Rehab' ? 'All' : 'Tele-Rehab')}
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  fontSize: '0.9rem', 
+                  padding: '8px 12px', 
+                  background: filterType === 'Tele-Rehab' ? 'rgba(99, 102, 241, 0.15)' : 'var(--glass-bg)', 
+                  border: filterType === 'Tele-Rehab' ? '1px solid var(--secondary)' : '1px solid transparent',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                title={filterType === 'Tele-Rehab' ? 'Click to show all appointments' : 'Click to filter by Tele-Rehab'}
+              >
+                <span style={{ color: filterType === 'Tele-Rehab' ? 'var(--secondary)' : 'var(--text-muted)', fontWeight: filterType === 'Tele-Rehab' ? '600' : 'normal' }}>Tele-Rehab:</span>
+                <span style={{ fontWeight: '700', color: filterType === 'Tele-Rehab' ? 'var(--secondary)' : 'var(--text-main)' }}>{teleRehabCount}</span>
               </div>
             </div>
           </div>
@@ -82,7 +193,7 @@ const Appointments = () => {
         {/* Right Column: Appointment List */}
         <div className="glass-panel" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3>Today's Schedule</h3>
+            <h3>Today's Schedule {filterType !== 'All' ? `(${filterType})` : ''}</h3>
             <div style={{ position: 'relative' }}>
               <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '10px' }} />
               <input 
@@ -102,7 +213,6 @@ const Appointments = () => {
             {filteredAppointments.length > 0 ? (
               filteredAppointments.map(app => (
                 <div key={app.id} 
-                  onClick={(e) => toggleExpand(app.id, e)}
                   style={{ 
                     display: 'flex', 
                     flexDirection: 'column',
@@ -115,14 +225,17 @@ const Appointments = () => {
                     borderBottom: '1px solid var(--border)',
                     boxShadow: expandedId === app.id ? '0 8px 24px rgba(0,0,0,0.08)' : 'none',
                     transition: 'all 0.3s ease',
-                    cursor: 'pointer',
+                    cursor: 'default',
                     overflow: 'hidden'
                   }} 
                   onMouseEnter={(e) => { if(expandedId !== app.id) e.currentTarget.style.transform = 'translateX(4px)' }} 
                   onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateX(0)' }}>
                   
                   {/* Card Header (Always Visible) */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px' }}>
+                  <div 
+                    onClick={(e) => toggleExpand(app.id, e)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', cursor: 'pointer' }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                       <div style={{ minWidth: '85px', textAlign: 'center', borderRight: '1px solid var(--border)', paddingRight: '20px' }}>
                         <p style={{ margin: 0, fontWeight: '700', color: 'var(--text-main)', fontSize: '1.05rem' }}>{app.time}</p>
@@ -161,7 +274,7 @@ const Appointments = () => {
 
                   {/* Expanded Content */}
                   {expandedId === app.id && (
-                    <div style={{ padding: '20px', borderTop: '1px solid var(--border)', background: 'var(--glass-bg)', display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.3s ease' }}>
+                    <div onClick={(e) => e.stopPropagation()} style={{ padding: '20px', borderTop: '1px solid var(--border)', background: 'var(--glass-bg)', display: 'flex', flexDirection: 'column', gap: '16px', animation: 'fadeIn 0.3s ease' }}>
                       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                         <FileText size={18} color="var(--text-muted)" style={{ marginTop: '2px' }} />
                         <div>
@@ -181,6 +294,25 @@ const Appointments = () => {
                         </button>
                         <button className="glass-button" style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }}>
                           Reschedule
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAppointmentToDelete(app);
+                          }} 
+                          className="glass-button" 
+                          style={{ 
+                            padding: '8px 16px', 
+                            background: 'transparent', 
+                            border: '1px solid var(--danger)', 
+                            color: 'var(--danger)', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '6px', 
+                            fontWeight: '500' 
+                          }}
+                        >
+                          <Trash2 size={16} /> Delete
                         </button>
                       </div>
                     </div>
@@ -208,28 +340,97 @@ const Appointments = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Patient Name</label>
-                <input type="text" className="search-bar" style={{ width: '100%', borderRadius: '8px' }} placeholder="Enter name" />
+                <input 
+                  type="text" 
+                  className="search-bar" 
+                  style={{ width: '100%', borderRadius: '8px' }} 
+                  placeholder="Enter name" 
+                  value={newPatientName}
+                  onChange={(e) => setNewPatientName(e.target.value)}
+                />
               </div>
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Date</label>
-                  <input type="date" className="search-bar" style={{ width: '100%', borderRadius: '8px' }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Time</label>
-                  <input type="time" className="search-bar" style={{ width: '100%', borderRadius: '8px' }} />
-                </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Date</label>
+                <input 
+                  type="date" 
+                  className="search-bar" 
+                  style={{ width: '100%', borderRadius: '8px' }} 
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Treatment Type</label>
-                <select className="search-bar" style={{ width: '100%', borderRadius: '8px', cursor: 'pointer' }}>
+                <select 
+                  className="search-bar" 
+                  style={{ width: '100%', borderRadius: '8px', cursor: 'pointer' }}
+                  value={newType}
+                  onChange={(e) => setNewType(e.target.value)}
+                >
                   <option>In-Clinic Session</option>
                   <option>Tele-Rehab (Video)</option>
                   <option>Home Visit</option>
                 </select>
               </div>
-              <button className="glass-button" onClick={() => setShowAddModal(false)} style={{ width: '100%', background: 'var(--primary)', color: 'white', border: 'none', padding: '12px', marginTop: '10px', fontWeight: '600', fontSize: '1rem' }}>
+              <button 
+                className="glass-button" 
+                onClick={handleSaveAppointment} 
+                style={{ width: '100%', background: 'var(--primary)', color: 'white', border: 'none', padding: '12px', marginTop: '10px', fontWeight: '600', fontSize: '1rem' }}
+              >
                 Save Appointment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {appointmentToDelete && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="glass-panel" style={{ width: '400px', padding: '24px', position: 'relative', textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <Trash2 size={22} /> Delete Appointment
+            </h3>
+            <p style={{ color: 'var(--text-main)', marginBottom: '24px', fontSize: '0.95rem', lineHeight: '1.5' }}>
+              Are you sure you want to delete the appointment for <strong>{appointmentToDelete.patient}</strong>? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button 
+                className="glass-button" 
+                onClick={async () => {
+                  try {
+                    await api.deleteAppointment(appointmentToDelete.id);
+                    setAppointments(appointments.filter(a => a.id !== appointmentToDelete.id));
+                  } catch (err) {
+                    if (!getBackendStatus()) {
+                      const updatedApps = appointments.filter(a => a.id !== appointmentToDelete.id);
+                      setAppointments(updatedApps);
+                      localStorage.setItem('appointments_list', JSON.stringify(updatedApps));
+
+                      // Push to appointments_bin for Recycle Bin availability
+                      const localAppointmentsBin = JSON.parse(localStorage.getItem('appointments_bin') || '[]');
+                      const appWithDeletedFlag = { 
+                        ...appointmentToDelete, 
+                        deleted: true, 
+                        deleted_at: new Date().toISOString() 
+                      };
+                      localAppointmentsBin.push(appWithDeletedFlag);
+                      localStorage.setItem('appointments_bin', JSON.stringify(localAppointmentsBin));
+                    }
+                  }
+                  setAppointmentToDelete(null);
+                  setExpandedId(null);
+                }}
+                style={{ background: 'var(--danger)', color: 'white', border: 'none', padding: '10px 20px', fontWeight: '600', borderRadius: '8px' }}
+              >
+                Yes, Delete
+              </button>
+              <button 
+                className="glass-button" 
+                onClick={() => setAppointmentToDelete(null)}
+                style={{ background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: '8px' }}
+              >
+                Cancel
               </button>
             </div>
           </div>
