@@ -11,6 +11,16 @@ const databaseName = process.env.MYSQL_DATABASE || 'physiosync';
 
 export let sequelize;
 
+export const Op = {
+  eq: Symbol.for('eq'),
+  ne: Symbol.for('ne'),
+  gte: Symbol.for('gte'),
+  gt: Symbol.for('gt'),
+  lte: Symbol.for('lte'),
+  lt: Symbol.for('lt'),
+  in: Symbol.for('in')
+};
+
 const isMySQLConfigured = !!(MYSQL_URI || process.env.MYSQL_HOST);
 
 // Check if sqlite3 driver is loadable in this environment

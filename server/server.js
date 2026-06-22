@@ -3,9 +3,8 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import { initDb, seedDoctorData } from './db.js';
+import { initDb, seedDoctorData, Op } from './db.js';
 import { Doctor, Appointment, Patient, Protocol, EMRNote, Wearable } from './models.js';
-import { Op } from 'sequelize';
 
 dotenv.config();
 
