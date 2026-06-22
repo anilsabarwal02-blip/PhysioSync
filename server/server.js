@@ -197,8 +197,8 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
       await Patient.create({
         doctor_id: req.user.doctorId,
         name: patient,
-        age: 35,
-        gender: 'Male',
+        age: null,
+        gender: null,
         condition: treatment || 'General Physiotherapy',
         student: 'None',
         status: 'Pending',
