@@ -4,7 +4,7 @@ import { api, getBackendStatus } from '../utils/api';
 
 const Auth = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ name: 'Dr. Sharma', doctorId: '', password: 'password123' });
+  const [formData, setFormData] = useState({ name: '', doctorId: '', password: '' });
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
