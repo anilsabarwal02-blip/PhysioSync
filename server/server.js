@@ -67,6 +67,10 @@ const authenticateToken = async (req, res, next) => {
   });
 };
 
+app.get('/api/version', (req, res) => {
+  res.json({ version: 'dd1fd9f - auto-create on login' });
+});
+
 // --- AUTHENTICATION ROUTES ---
 
 // Register Doctor
