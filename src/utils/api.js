@@ -41,13 +41,18 @@ async function request(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 seconds timeout
+
   const config = {
     ...options,
-    headers
+    headers,
+    signal: controller.signal
   };
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -56,6 +61,10 @@ async function request(endpoint, options = {}) {
 
     return await response.json();
   } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your database connection.');
+    }
     // If backend is unreachable, toggle offline fallback
     if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
       isBackendOffline = true;
