@@ -1,20 +1,15 @@
-import mongoose from 'mongoose';
 import { Patient, Appointment } from './models.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/physiosync';
+import { initDb } from './db.js';
 
 async function query() {
   try {
-    await mongoose.connect(MONGODB_URI);
+    await initDb();
     console.log('--- PATIENTS ---');
-    const patients = await Patient.find({});
+    const patients = await Patient.findAll();
     console.log(JSON.stringify(patients, null, 2));
 
     console.log('--- APPOINTMENTS ---');
-    const appointments = await Appointment.find({});
+    const appointments = await Appointment.findAll();
     console.log(JSON.stringify(appointments, null, 2));
 
     process.exit(0);
