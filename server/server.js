@@ -280,7 +280,19 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
         deleted: false
       }
     });
-    const todaySessions = await Appointment.count({ where: { doctor_id: doctorId, deleted: false } });
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    const todaySessions = await Appointment.count({ 
+      where: { 
+        doctor_id: doctorId, 
+        date: todayStr,
+        deleted: false 
+      } 
+    });
     const approvedPatients = await Patient.count({
       where: {
         doctor_id: doctorId,
