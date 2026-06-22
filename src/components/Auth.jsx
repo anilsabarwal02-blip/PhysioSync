@@ -4,7 +4,7 @@ import { api, getBackendStatus } from '../utils/api';
 
 const Auth = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ name: '', doctorId: '', password: '' });
+  const [formData, setFormData] = useState({ name: 'Dr. Sharma', doctorId: '', password: 'password123' });
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -42,7 +42,7 @@ const Auth = ({ onLogin }) => {
           setSuccessMsg(`Account created! Your unique Doctor ID is: ${res.doctor.doctorId}. Please save it.`);
           setError('');
           setIsLogin(true);
-          setFormData({ name: '', doctorId: res.doctor.doctorId, password: '' });
+          setFormData({ name: formData.name, doctorId: res.doctor.doctorId, password: formData.password });
         } catch (backendErr) {
           if (!getBackendStatus()) {
             // Local fallback registration
@@ -55,7 +55,7 @@ const Auth = ({ onLogin }) => {
             setSuccessMsg(`Account created! Your unique Doctor ID is: ${newId}. Please save it. (Offline Mode)`);
             setError('');
             setIsLogin(true);
-            setFormData({ name: '', doctorId: newId, password: '' });
+            setFormData({ name: formData.name, doctorId: newId, password: formData.password });
           } else {
             setError(backendErr.message || 'Registration failed');
           }
