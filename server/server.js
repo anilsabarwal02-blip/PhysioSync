@@ -16,6 +16,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'physiosync-super-secret-key-123';
 app.use(cors());
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.url} - Body:`, req.body);
+  const originalJson = res.json;
+  res.json = function(body) {
+    console.log(`[RESPONSE] ${req.method} ${req.url} - Status: ${res.statusCode} - Body:`, body);
+    return originalJson.call(this, body);
+  };
+  next();
+});
+
 // Initialize MySQL database
 try {
   await initDb();
