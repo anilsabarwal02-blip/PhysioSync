@@ -212,7 +212,7 @@ const Appointments = () => {
                 <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{appointments.length} Sessions Scheduled</p>
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+            <div className="stats-list-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
               {APPOINTMENT_TYPES.map(type => {
                 const count = appointments.filter(app => app.type === type || (type === 'Tele Rehab' && app.type === 'Tele-Rehab')).length;
                 const isSelected = filterType === type || (type === 'Tele Rehab' && filterType === 'Tele-Rehab');

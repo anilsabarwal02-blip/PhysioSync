@@ -602,3 +602,27 @@
     right: 12px !important;
   }
 }
+
+/* Custom scrollbar for stats list */
+.stats-list-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(13, 148, 136, 0.2) transparent;
+}
+
+.stats-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.stats-list-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stats-list-container::-webkit-scrollbar-thumb {
+  background: rgba(13, 148, 136, 0.2);
+  border-radius: 10px;
+  transition: all 0.3s;
+}
+
+.stats-list-container::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
