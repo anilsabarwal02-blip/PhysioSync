@@ -93,10 +93,24 @@ const Sidebar = ({ onLogout, onToggleAI, isAIAssistantOpen }) => {
           <Settings size={20} style={{ minWidth: '20px' }} />
           {!isCollapsed && <span>Settings</span>}
         </div>
-        {showSettingsMenu && !isCollapsed && (
-          <div className="nav-item" onClick={onLogout} style={{ color: 'var(--danger)', cursor: 'pointer', paddingLeft: '40px', fontSize: '0.9rem', marginTop: '4px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+        {showSettingsMenu && (
+          <div 
+            className="nav-item" 
+            onClick={onLogout} 
+            style={{ 
+              color: 'var(--danger)', 
+              cursor: 'pointer', 
+              paddingLeft: isCollapsed ? '16px' : '40px', 
+              fontSize: '0.9rem', 
+              marginTop: '4px', 
+              overflow: 'hidden', 
+              whiteSpace: 'nowrap',
+              justifyContent: isCollapsed ? 'center' : 'flex-start'
+            }}
+            title="Logout"
+          >
             <LogOut size={16} style={{ minWidth: '16px' }} />
-            <span>Logout</span>
+            {!isCollapsed && <span>Logout</span>}
           </div>
         )}
       </div>

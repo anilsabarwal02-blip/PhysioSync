@@ -68,9 +68,23 @@ const AIAssistant = ({ isOpen, onClose }) => {
             AI Assistant <Sparkles size={20} color="var(--secondary)" />
           </h2>
         </div>
-        <button onClick={onClose} style={{ padding: '8px', background: 'var(--glass-bg)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <X size={20} />
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {apiKey && (
+            <button 
+              onClick={() => {
+                setKeyInput(apiKey);
+                setApiKey('');
+              }} 
+              title="Change API Key"
+              style={{ padding: '8px', background: 'var(--glass-bg)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <KeyRound size={20} />
+            </button>
+          )}
+          <button onClick={onClose} style={{ padding: '8px', background: 'var(--glass-bg)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={20} />
+          </button>
+        </div>
       </header>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-main)' }}>
