@@ -64,6 +64,7 @@ const Appointments = () => {
       type: typeParsed,
       treatment: 'General Physiotherapy',
       time: defaultTimeFormatted || '10:00 AM',
+      date: newDate,
       duration: '45 min',
       status: 'Confirmed',
       notes: 'Scheduled appointment. Initial clinical notes pending session execution.'
@@ -81,6 +82,8 @@ const Appointments = () => {
         const updatedApps = [newApp, ...appointments];
         setAppointments(updatedApps);
         localStorage.setItem('appointments_list', JSON.stringify(updatedApps));
+      } else {
+        alert("Failed to save appointment. Server error: " + err.message);
       }
     }
     
@@ -239,7 +242,7 @@ const Appointments = () => {
                     <div className="appointment-card-left">
                       <div className="appointment-time-col">
                         <p style={{ margin: 0, fontWeight: '700', color: 'var(--text-main)', fontSize: '1.05rem' }}>{app.time}</p>
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{app.duration}</p>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{app.date ? `${app.date} • ` : ''}{app.duration}</p>
                       </div>
                       
                       <div>

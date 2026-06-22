@@ -19,6 +19,7 @@ const appointmentSchema = new mongoose.Schema({
   type: { type: String, required: true },
   treatment: { type: String, default: 'General Physiotherapy' },
   time: { type: String, required: true },
+  date: { type: String, default: '' },
   duration: { type: String, default: '45 min' },
   status: { type: String, default: 'Confirmed' },
   notes: { type: String, default: '' },

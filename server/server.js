@@ -146,7 +146,7 @@ app.get('/api/appointments', authenticateToken, async (req, res) => {
 
 // Create Appointment
 app.post('/api/appointments', authenticateToken, async (req, res) => {
-  const { patient, type, treatment, time, duration, status, notes } = req.body;
+  const { patient, type, treatment, time, duration, status, notes, date } = req.body;
   if (!patient || !type || !time) {
     return res.status(400).json({ error: 'Patient, type, and time are required' });
   }
@@ -158,6 +158,7 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
       type,
       treatment: treatment || 'General Physiotherapy',
       time,
+      date: date || '',
       duration: duration || '45 min',
       status: status || 'Confirmed',
       notes: notes || ''

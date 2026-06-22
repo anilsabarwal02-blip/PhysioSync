@@ -184,6 +184,8 @@ const VoiceNotes = () => {
         const updatedNotes = [localNewNote, ...savedNotes];
         setSavedNotes(updatedNotes);
         localStorage.setItem('emr_notes_list', JSON.stringify(updatedNotes));
+      } else {
+        alert("Failed to save note. Server error: " + err.message);
       }
     }
     setTranscript('');
