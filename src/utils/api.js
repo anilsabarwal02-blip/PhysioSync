@@ -127,6 +127,13 @@ export const api = {
     });
   },
 
+  updateAppointment: async (id, appData) => {
+    return request(`/appointments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(appData)
+    });
+  },
+
   getDashboardStats: async () => {
     return request('/dashboard/stats');
   },

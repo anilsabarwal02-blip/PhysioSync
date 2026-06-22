@@ -194,9 +194,19 @@ const Appointments = () => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const handleStatusChange = (id, newStatus, e) => {
+  const handleStatusChange = async (id, newStatus, e) => {
     e.stopPropagation();
-    setAppointments(appointments.map(app => app.id === id ? { ...app, status: newStatus } : app));
+    const updatedApps = appointments.map(app => app.id === id ? { ...app, status: newStatus } : app);
+    setAppointments(updatedApps);
+    localStorage.setItem('appointments_list', JSON.stringify(updatedApps));
+
+    if (id && !String(id).startsWith('temp-')) {
+      try {
+        await api.updateAppointment(id, { status: newStatus });
+      } catch (err) {
+        console.warn("[API] Failed to update appointment status on server. Error:", err.message);
+      }
+    }
   };
 
   return (

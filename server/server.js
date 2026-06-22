@@ -217,6 +217,36 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
   }
 });
 
+// Update Appointment
+app.put('/api/appointments/:id', authenticateToken, async (req, res) => {
+  const { status, patient, type, treatment, time, duration, notes, date } = req.body;
+  try {
+    const appointment = await Appointment.findOne({
+      where: { id: req.params.id, doctor_id: req.user.doctorId }
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    const updateFields = {};
+    if (status !== undefined) updateFields.status = status;
+    if (patient !== undefined) updateFields.patient = patient;
+    if (type !== undefined) updateFields.type = type;
+    if (treatment !== undefined) updateFields.treatment = treatment;
+    if (time !== undefined) updateFields.time = time;
+    if (duration !== undefined) updateFields.duration = duration;
+    if (notes !== undefined) updateFields.notes = notes;
+    if (date !== undefined) updateFields.date = date;
+
+    await appointment.update(updateFields);
+    res.json(appointment);
+  } catch (err) {
+    console.error('Update appointment error:', err);
+    res.status(500).json({ error: 'Failed to update appointment' });
+  }
+});
+
 // Delete Appointment (Soft Delete)
 app.delete('/api/appointments/:id', authenticateToken, async (req, res) => {
   try {
