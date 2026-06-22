@@ -6,7 +6,7 @@ const VoiceNotes = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [savedNotes, setSavedNotes] = useState([]);
-  const lastProcessedIndexRef = useRef(-1);
+  const initialTextRef = useRef('');
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -38,16 +38,48 @@ const VoiceNotes = () => {
       recognition.interimResults = true;
       
       recognition.onresult = (event) => {
-        let currentTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal && i > lastProcessedIndexRef.current) {
-            currentTranscript += event.results[i][0].transcript + ' ';
-            lastProcessedIndexRef.current = i;
+        let finalSpeech = '';
+        for (let i = 0; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            const phrase = event.results[i][0].transcript.trim();
+            if (phrase) {
+              if (finalSpeech) {
+                // Deduplicate accumulated transcripts (primarily for Android Chrome)
+                if (phrase.toLowerCase().startsWith(finalSpeech.toLowerCase())) {
+                  finalSpeech = phrase;
+                } else {
+                  finalSpeech += ' ' + phrase;
+                }
+              } else {
+                finalSpeech = phrase;
+              }
+            }
           }
         }
-        if (currentTranscript) {
-          setTranscript(prev => prev + currentTranscript);
+
+        let interimSpeech = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (!event.results[i].isFinal) {
+            interimSpeech += event.results[i][0].transcript;
+          }
         }
+        
+        let totalTranscript = initialTextRef.current;
+        const speechPart = (finalSpeech + (interimSpeech ? ' ' + interimSpeech : '')).trim();
+        
+        if (speechPart) {
+          if (totalTranscript) {
+            if (totalTranscript.endsWith(' ')) {
+              totalTranscript += speechPart;
+            } else {
+              totalTranscript += ' ' + speechPart;
+            }
+          } else {
+            totalTranscript = speechPart;
+          }
+        }
+        
+        setTranscript(totalTranscript);
       };
 
       recognition.onend = () => {
@@ -79,6 +111,7 @@ const VoiceNotes = () => {
     setMicBlocked(false);
     setIsSimulating(true);
     setIsRecording(true);
+    initialTextRef.current = '';
     setTranscript('');
     
     const sampleText = "Patient complains of persistent right knee pain, particularly during deep flexion. On physical examination, there is mild joint effusion and tenderness along the medial joint line. Active range of motion is limited to 95 degrees. I recommend starting physical therapy twice a week, focusing on quadriceps strengthening and hamstring flexibility. Plan approved.";
@@ -123,7 +156,7 @@ const VoiceNotes = () => {
     } else {
       setMicBlocked(false);
       try {
-        lastProcessedIndexRef.current = -1;
+        initialTextRef.current = transcript;
         recognitionRef.current.start();
         setIsRecording(true);
       } catch (err) {
