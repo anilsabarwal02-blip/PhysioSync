@@ -37,10 +37,10 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  // Bypassed login screen
-  // if (!isAuthenticated) {
-  //   return <Auth onLogin={handleLogin} />;
-  // }
+  // Require authentication
+  if (!isAuthenticated) {
+    return <Auth onLogin={handleLogin} />;
+  }
 
   return (
     <Router>
