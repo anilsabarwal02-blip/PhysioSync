@@ -68,7 +68,7 @@ const authenticateToken = async (req, res, next) => {
 };
 
 app.get('/api/version', (req, res) => {
-  res.json({ version: 'dd1fd9f - auto-create on login' });
+  res.json({ version: 'eaa4f79 - auto-create on Vercel or Mock login' });
 });
 
 // --- AUTHENTICATION ROUTES ---
@@ -113,9 +113,9 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     let doctor = await Doctor.findOne({ where: { doctor_id: doctorId } });
     
-    // Auto-create on the fly in Mock mode to survive serverless restarts/multi-instances
+    // Auto-create on the fly on Vercel or Mock mode to survive serverless restarts/multi-instances
     const { sequelize } = await import('./db.js');
-    if (!doctor && sequelize.isMock) {
+    if (!doctor && (process.env.VERCEL || sequelize.isMock)) {
       console.log(`[MOCK DB] Doctor ${doctorId} not found. Auto-creating on the fly for serverless persistence.`);
       const hashedPassword = await bcrypt.hash(password, 10);
       doctor = await Doctor.create({
