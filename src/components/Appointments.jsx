@@ -220,8 +220,8 @@ const Appointments = () => {
           <div className="glass-panel" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{ background: 'var(--primary)', padding: '12px', borderRadius: '12px', color: 'white', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)' }}>
-                <h2 style={{ margin: 0, fontSize: '1.5rem', textAlign: 'center' }}>18</h2>
-                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>June</span>
+                <h2 style={{ margin: 0, fontSize: '1.5rem', textAlign: 'center' }}>{new Date().getDate()}</h2>
+                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>{new Date().toLocaleString('en', { month: 'short' })}</span>
               </div>
               <div>
                 <h3 style={{ margin: 0 }}>Today</h3>

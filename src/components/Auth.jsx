@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Lock, Mail, User } from 'lucide-react';
+import { Activity, Lock, User } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
 const Auth = ({ onLogin }) => {

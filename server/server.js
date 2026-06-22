@@ -67,10 +67,6 @@ const authenticateToken = async (req, res, next) => {
   });
 };
 
-app.get('/api/version', (req, res) => {
-  res.json({ version: 'eaa4f79 - auto-create on Vercel or Mock login' });
-});
-
 // --- AUTHENTICATION ROUTES ---
 
 // Register Doctor

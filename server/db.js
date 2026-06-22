@@ -117,6 +117,12 @@ function createMockSequelize() {
           return this;
         }
 
+        async update(values) {
+          Object.assign(this, values);
+          await this.save();
+          return this;
+        }
+
         async destroy() {
           const modelClass = this.constructor;
           const store = modelClass._store;
@@ -124,6 +130,12 @@ function createMockSequelize() {
           if (idx !== -1) {
             store.splice(idx, 1);
           }
+        }
+
+        toJSON() {
+          const values = Object.assign({}, this.get());
+          values._id = values.id;
+          return values;
         }
 
         get(key) {
@@ -226,6 +238,15 @@ function createMockSequelize() {
             await item.destroy();
           }
           return results.length;
+        }
+
+        static async update(values, { where } = {}) {
+          const results = await this.findAll({ where });
+          for (const item of results) {
+            Object.assign(item, values);
+            await item.save();
+          }
+          return [results.length];
         }
       }
 
