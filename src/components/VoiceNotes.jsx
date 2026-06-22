@@ -176,16 +176,17 @@ const VoiceNotes = () => {
       const data = await api.saveNote(noteData);
       setSavedNotes(data);
     } catch (err) {
-      if (!getBackendStatus()) {
-        const localNewNote = {
-          id: Date.now(),
-          ...noteData
-        };
-        const updatedNotes = [localNewNote, ...savedNotes];
-        setSavedNotes(updatedNotes);
-        localStorage.setItem('emr_notes_list', JSON.stringify(updatedNotes));
-      } else {
-        alert("Failed to save note. Server error: " + err.message);
+      // Save locally in all failure cases (offline or server error) as a fallback
+      const localNewNote = {
+        id: Date.now(),
+        ...noteData
+      };
+      const updatedNotes = [localNewNote, ...savedNotes];
+      setSavedNotes(updatedNotes);
+      localStorage.setItem('emr_notes_list', JSON.stringify(updatedNotes));
+
+      if (getBackendStatus()) {
+        alert("Server error occurred (" + err.message + "). The note has been saved locally on your browser.");
       }
     }
     setTranscript('');

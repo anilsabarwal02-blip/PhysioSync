@@ -74,16 +74,17 @@ const Appointments = () => {
       const savedApp = await api.createAppointment(appData);
       setAppointments([savedApp, ...appointments]);
     } catch (err) {
-      if (!getBackendStatus()) {
-        const newApp = {
-          id: Date.now(),
-          ...appData
-        };
-        const updatedApps = [newApp, ...appointments];
-        setAppointments(updatedApps);
-        localStorage.setItem('appointments_list', JSON.stringify(updatedApps));
-      } else {
-        alert("Failed to save appointment. Server error: " + err.message);
+      // Save locally in all failure cases (offline or server error) as a fallback
+      const newApp = {
+        id: Date.now(),
+        ...appData
+      };
+      const updatedApps = [newApp, ...appointments];
+      setAppointments(updatedApps);
+      localStorage.setItem('appointments_list', JSON.stringify(updatedApps));
+
+      if (getBackendStatus()) {
+        alert("Server error occurred (" + err.message + "). The appointment has been saved locally on your browser.");
       }
     }
     
