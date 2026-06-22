@@ -14,18 +14,23 @@ const RecycleBin = () => {
   const [emptyBinModal, setEmptyBinModal] = useState(false); // boolean
 
   const fetchDeletedItems = async () => {
+    // Load from localStorage immediately so UI renders instantly (0ms delay)
+    const localAppointmentsBin = JSON.parse(localStorage.getItem('appointments_bin') || '[]');
+    const localPatientsBin = JSON.parse(localStorage.getItem('patients_bin') || '[]');
+    setAppointments(localAppointmentsBin);
+    setPatients(localPatientsBin);
+
     setIsLoading(true);
     try {
       const data = await api.getRecycleBin();
-      setAppointments(data.appointments || []);
-      setPatients(data.patients || []);
+      const apps = data.appointments || [];
+      const pats = data.patients || [];
+      setAppointments(apps);
+      setPatients(pats);
+      localStorage.setItem('appointments_bin', JSON.stringify(apps));
+      localStorage.setItem('patients_bin', JSON.stringify(pats));
     } catch (err) {
-      if (!getBackendStatus()) {
-        const localAppointmentsBin = JSON.parse(localStorage.getItem('appointments_bin') || '[]');
-        const localPatientsBin = JSON.parse(localStorage.getItem('patients_bin') || '[]');
-        setAppointments(localAppointmentsBin);
-        setPatients(localPatientsBin);
-      }
+      console.warn("[API] Failed to fetch recycle bin from backend, using local data. Error:", err.message);
     } finally {
       setIsLoading(false);
     }

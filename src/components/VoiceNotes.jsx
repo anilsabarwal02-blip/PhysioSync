@@ -9,17 +9,19 @@ const VoiceNotes = () => {
   const initialTextRef = useRef('');
 
   useEffect(() => {
+    // Load from localStorage immediately so UI renders instantly (0ms delay)
+    const saved = localStorage.getItem('emr_notes_list');
+    if (saved) {
+      setSavedNotes(JSON.parse(saved));
+    }
+
     const fetchNotes = async () => {
       try {
         const data = await api.getNotes();
         setSavedNotes(data);
+        localStorage.setItem('emr_notes_list', JSON.stringify(data));
       } catch (err) {
-        if (!getBackendStatus()) {
-          const saved = localStorage.getItem('emr_notes_list');
-          if (saved) {
-            setSavedNotes(JSON.parse(saved));
-          }
-        }
+        console.warn("[API] Failed to fetch voice notes from backend, using local data. Error:", err.message);
       }
     };
     fetchNotes();

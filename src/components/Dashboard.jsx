@@ -76,6 +76,38 @@ const Dashboard = () => {
       setDoctorName('Dr. Sharma');
     }
 
+    // Load from localStorage immediately so UI renders instantly (0ms delay)
+    const localPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
+    const localAppointments = JSON.parse(localStorage.getItem('appointments_list') || '[]');
+    
+    const initialMapped = localPatientsList.map(p => {
+      const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
+      const isApproved = p.status === 'Approved' || localStorage.getItem(`patient_status_${p.name}`) === 'Approved';
+      return {
+        id: p.id,
+        name: p.name,
+        desc,
+        status: isApproved ? 'Approved' : p.status,
+        statusClass: isApproved ? 'status-active' : 'status-pending',
+        style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
+      };
+    });
+    setPatients(initialMapped);
+
+    const total = localPatientsList.length;
+    const pending = localPatientsList.filter(p => p.student && p.student !== 'None' && p.status === 'Pending').length;
+    const today = localAppointments.length;
+    const approved = localPatientsList.filter(p => p.status === 'Approved').length;
+    const recovery = total > 0 ? Math.round((approved / total) * 100) : 0;
+    
+    setStats({
+      totalPatients: total,
+      pendingLogs: pending,
+      todaySessions: today,
+      recoveryRate: recovery,
+      newPatientsThisMonth: total
+    });
+
     const fetchPatients = async () => {
       try {
         const backendPatients = await api.getPatients();
@@ -92,23 +124,9 @@ const Dashboard = () => {
           };
         });
         setPatients(mapped);
+        localStorage.setItem('patients_list', JSON.stringify(backendPatients));
       } catch (err) {
-        if (!getBackendStatus()) {
-          const localPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
-          const mapped = localPatientsList.map(p => {
-            const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
-            const isApproved = p.status === 'Approved' || localStorage.getItem(`patient_status_${p.name}`) === 'Approved';
-            return {
-              id: p.id,
-              name: p.name,
-              desc,
-              status: isApproved ? 'Approved' : p.status,
-              statusClass: isApproved ? 'status-active' : 'status-pending',
-              style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
-            };
-          });
-          setPatients(mapped);
-        }
+        console.warn("[API] Failed to fetch patients from backend in background:", err.message);
       }
     };
 
@@ -117,24 +135,7 @@ const Dashboard = () => {
         const data = await api.getDashboardStats();
         setStats(data);
       } catch (err) {
-        if (!getBackendStatus()) {
-          const localPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
-          const localAppointments = JSON.parse(localStorage.getItem('appointments_list') || '[]');
-          
-          const total = localPatientsList.length;
-          const pending = localPatientsList.filter(p => p.student && p.student !== 'None' && p.status === 'Pending').length;
-          const today = localAppointments.length;
-          const approved = localPatientsList.filter(p => p.status === 'Approved').length;
-          const recovery = total > 0 ? Math.round((approved / total) * 100) : 0;
-          
-          setStats({
-            totalPatients: total,
-            pendingLogs: pending,
-            todaySessions: today,
-            recoveryRate: recovery,
-            newPatientsThisMonth: total
-          });
-        }
+        console.warn("[API] Failed to fetch dashboard stats in background:", err.message);
       }
     };
 

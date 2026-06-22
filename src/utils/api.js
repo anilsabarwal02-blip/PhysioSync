@@ -41,13 +41,18 @@ async function request(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
+
   const config = {
     ...options,
-    headers
+    headers,
+    signal: controller.signal
   };
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -56,10 +61,16 @@ async function request(endpoint, options = {}) {
 
     return await response.json();
   } catch (err) {
-    // If backend is unreachable, toggle offline fallback
-    if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+    clearTimeout(timeoutId);
+    // If backend is unreachable or request timed out/aborted, toggle offline fallback
+    if (
+      err.name === 'AbortError' ||
+      err.message.includes('Failed to fetch') ||
+      err.message.includes('NetworkError') ||
+      err.message.includes('timeout')
+    ) {
       isBackendOffline = true;
-      console.warn('[API] PhysioSync Express Backend is offline. Switching to local mock/localStorage fallback mode.');
+      console.warn('[API] PhysioSync Express Backend is offline or hanging. Switching to local mock/localStorage fallback mode.');
     }
     throw err;
   }

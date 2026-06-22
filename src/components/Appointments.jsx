@@ -68,19 +68,19 @@ const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
 
   useEffect(() => {
+    // Load from localStorage immediately so UI renders instantly (0ms delay)
+    const saved = localStorage.getItem('appointments_list');
+    if (saved) {
+      setAppointments(JSON.parse(saved));
+    }
+
     const fetchAppointments = async () => {
       try {
         const data = await api.getAppointments();
         setAppointments(data);
+        localStorage.setItem('appointments_list', JSON.stringify(data));
       } catch (err) {
-        if (!getBackendStatus()) {
-          const saved = localStorage.getItem('appointments_list');
-          if (saved) {
-            setAppointments(JSON.parse(saved));
-          } else {
-            setAppointments([]);
-          }
-        }
+        console.warn("[API] Failed to fetch appointments from backend, using local data. Error:", err.message);
       }
     };
     fetchAppointments();
