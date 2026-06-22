@@ -51,6 +51,7 @@ const Dashboard = () => {
       student: 'None',
       status: 'Pending',
       last_visit: 'New Patient',
+      created_at: new Date().toISOString(),
       deleted: false
     };
 
@@ -195,16 +196,31 @@ const Dashboard = () => {
 
     const total = localPatientsList.length;
     const pending = localPatientsList.filter(p => p.student && p.student !== 'None' && p.status === 'Pending').length;
-    const today = localAppointments.length;
+
+    // Filter today's appointments by date string
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    const today = localAppointments.filter(app => app.date === todayStr).length;
+
     const approved = localPatientsList.filter(p => p.status === 'Approved').length;
     const recovery = total > 0 ? Math.round((approved / total) * 100) : 0;
     
+    // Filter patients registered in last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const newPatients = localPatientsList.filter(p => {
+      const createdTime = p.created_at || p.createdAt ? new Date(p.created_at || p.createdAt) : null;
+      return !createdTime || createdTime >= thirtyDaysAgo;
+    }).length;
+
     setStats({
       totalPatients: total,
       pendingLogs: pending,
       todaySessions: today,
       recoveryRate: recovery,
-      newPatientsThisMonth: total
+      newPatientsThisMonth: newPatients
     });
 
     const fetchPatients = async () => {
