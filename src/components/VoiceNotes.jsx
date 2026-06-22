@@ -172,24 +172,27 @@ const VoiceNotes = () => {
       text: transcript,
       date: new Date().toLocaleString()
     };
+    const tempId = Date.now();
+    const localNewNote = {
+      id: tempId,
+      ...noteData
+    };
+    
+    // Update UI and localStorage instantly
+    const updatedNotes = [localNewNote, ...savedNotes];
+    setSavedNotes(updatedNotes);
+    localStorage.setItem('emr_notes_list', JSON.stringify(updatedNotes));
+    setTranscript('');
+
+    // Sync with the backend in the background
     try {
       const data = await api.saveNote(noteData);
       setSavedNotes(data);
+      localStorage.setItem('emr_notes_list', JSON.stringify(data));
     } catch (err) {
-      // Save locally in all failure cases (offline or server error) as a fallback
-      const localNewNote = {
-        id: Date.now(),
-        ...noteData
-      };
-      const updatedNotes = [localNewNote, ...savedNotes];
-      setSavedNotes(updatedNotes);
-      localStorage.setItem('emr_notes_list', JSON.stringify(updatedNotes));
-
-      if (getBackendStatus()) {
-        alert("Server error occurred (" + err.message + "). The note has been saved locally on your browser.");
-      }
+      console.warn("[API] Background note sync failed. Stored locally. Error:", err.message);
+      // We don't block the user with an alert here because it has already been saved locally
     }
-    setTranscript('');
   };
 
   const copyToClipboard = () => {

@@ -119,7 +119,10 @@ const Appointments = () => {
     const currentMinutes = String(now.getMinutes()).padStart(2, '0');
     const defaultTimeFormatted = formatTime12Hour(`${currentHours}:${currentMinutes}`);
 
-    const appData = {
+    // Create a local optimistic version of the appointment immediately
+    const tempId = 'temp-' + Date.now();
+    const newApp = {
+      id: tempId,
       patient: newPatientName,
       type: newType,
       treatment: 'General Physiotherapy',
@@ -130,29 +133,42 @@ const Appointments = () => {
       notes: 'Scheduled appointment. Initial clinical notes pending session execution.'
     };
 
-    try {
-      const savedApp = await api.createAppointment(appData);
-      setAppointments([savedApp, ...appointments]);
-    } catch (err) {
-      // Save locally in all failure cases (offline or server error) as a fallback
-      const newApp = {
-        id: Date.now(),
-        ...appData
-      };
-      const updatedApps = [newApp, ...appointments];
-      setAppointments(updatedApps);
-      localStorage.setItem('appointments_list', JSON.stringify(updatedApps));
+    // Update UI state instantly
+    const updatedApps = [newApp, ...appointments];
+    setAppointments(updatedApps);
 
-      if (getBackendStatus()) {
-        alert("Server error occurred (" + err.message + "). The appointment has been saved locally on your browser.");
-      }
-    }
-    
-    // Reset form states
+    // Save to localStorage instantly as a fallback
+    localStorage.setItem('appointments_list', JSON.stringify(updatedApps));
+
+    // Reset form states and close modal instantly
     setNewPatientName('');
     setNewDate('');
     setNewType('OPD');
     setShowAddModal(false);
+
+    // Sync with the backend in the background
+    try {
+      const savedApp = await api.createAppointment({
+        patient: newApp.patient,
+        type: newApp.type,
+        treatment: newApp.treatment,
+        time: newApp.time,
+        date: newApp.date,
+        duration: newApp.duration,
+        status: newApp.status,
+        notes: newApp.notes
+      });
+      
+      // If server successfully saved, replace the temporary item with the server version
+      setAppointments(prev => {
+        const finalApps = prev.map(app => app.id === tempId ? savedApp : app);
+        localStorage.setItem('appointments_list', JSON.stringify(finalApps));
+        return finalApps;
+      });
+    } catch (err) {
+      console.warn("[API] Background appointment sync failed. Stored locally. Error:", err.message);
+      // We don't block the user with an alert here because it has already been saved locally
+    }
   };
 
 
