@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, ActivitySquare, TrendingUp, Bell, Mic, Search, Clock, X, BrainCircuit, Trash2 } from 'lucide-react';
+import { Users, ActivitySquare, TrendingUp, Bell, Mic, Search, Clock, X, BrainCircuit, Trash2, Plus } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
 const Dashboard = () => {
@@ -28,6 +28,105 @@ const Dashboard = () => {
     recoveryRate: 0,
     newPatientsThisMonth: 0
   });
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newAge, setNewAge] = useState('');
+  const [newGender, setNewGender] = useState('Male');
+  const [newCondition, setNewCondition] = useState('');
+
+  const handleAddPatient = async () => {
+    if (!newName.trim() || !newCondition.trim()) {
+      alert("Please fill in Name and Condition.");
+      return;
+    }
+
+    const tempId = 'temp-' + Date.now();
+    const newPatLocal = {
+      id: tempId,
+      name: newName,
+      age: newAge ? parseInt(newAge) : null,
+      gender: newGender,
+      condition: newCondition,
+      student: 'None',
+      status: 'Pending',
+      last_visit: 'New Patient',
+      deleted: false
+    };
+
+    // Optimistically update local UI state
+    const desc = `${newPatLocal.condition} • Waiting for Assessment`;
+    const mappedLocal = {
+      id: tempId,
+      name: newPatLocal.name,
+      desc,
+      status: newPatLocal.status,
+      statusClass: 'status-pending',
+      style: null
+    };
+
+    const updatedPatients = [mappedLocal, ...patients];
+    setPatients(updatedPatients);
+
+    // Save to local patients list cache
+    const currentLocalPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
+    localStorage.setItem('patients_list', JSON.stringify([newPatLocal, ...currentLocalPatientsList]));
+
+    // Update total patients count in stats optimistically
+    setStats(prev => ({
+      ...prev,
+      totalPatients: prev.totalPatients + 1,
+      newPatientsThisMonth: prev.newPatientsThisMonth + 1
+    }));
+
+    // Reset and close modal
+    setNewName('');
+    setNewAge('');
+    setNewGender('Male');
+    setNewCondition('');
+    setShowAddModal(false);
+
+    // Sync with backend API
+    try {
+      const savedPatient = await api.createPatient({
+        name: newPatLocal.name,
+        age: newPatLocal.age,
+        gender: newPatLocal.gender,
+        condition: newPatLocal.condition
+      });
+
+      // Update state and cache with actual database item
+      setPatients(prev => {
+        const desc = `${savedPatient.condition} • ${savedPatient.student && savedPatient.student !== 'None' ? 'Student: ' + savedPatient.student : 'Waiting for Assessment'}`;
+        const isApproved = savedPatient.status === 'Approved';
+        const finalMapped = {
+          id: savedPatient._id || savedPatient.id,
+          name: savedPatient.name,
+          desc,
+          status: savedPatient.status,
+          statusClass: isApproved ? 'status-active' : 'status-pending',
+          style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
+        };
+        const finalApps = prev.map(p => p.id === tempId ? finalMapped : p);
+        
+        // Refresh local storage patients_list
+        const currentLocal = JSON.parse(localStorage.getItem('patients_list') || '[]');
+        const updatedLocal = currentLocal.map(p => p.id === tempId ? savedPatient : p);
+        localStorage.setItem('patients_list', JSON.stringify(updatedLocal));
+
+        return finalApps;
+      });
+
+      // Fetch dashboard stats from backend to get fresh counts
+      try {
+        const freshStats = await api.getDashboardStats();
+        setStats(freshStats);
+      } catch {}
+
+    } catch (err) {
+      console.warn("[API] Background patient sync failed. Stored locally. Error:", err.message);
+    }
+  };
 
   const markAllNotificationsAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -495,8 +594,15 @@ const Dashboard = () => {
 
       <div className="dashboard-content-grid">
         <div className="glass-panel recent-patients-list">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h3>Recent Patients</h3>
+            <button 
+              className="glass-button" 
+              onClick={() => setShowAddModal(true)} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.85rem', background: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)' }}
+            >
+              <Plus size={14} /> Add Patient
+            </button>
           </div>
           
           {patients.length > 0 ? (
@@ -569,6 +675,75 @@ const Dashboard = () => {
                 style={{ background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: '8px' }}
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Patient Modal */}
+      {showAddModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '450px', margin: '0 16px', padding: '24px', position: 'relative', animation: 'scaleIn 0.3s ease' }}>
+            <button onClick={() => setShowAddModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <X size={20} />
+            </button>
+            <h2 style={{ margin: '0 0 20px 0' }}>Add New Patient</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Patient Name</label>
+                <input 
+                  type="text" 
+                  className="search-bar" 
+                  style={{ width: '100%', borderRadius: '8px' }} 
+                  placeholder="Enter name" 
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Age</label>
+                  <input 
+                    type="number" 
+                    className="search-bar" 
+                    style={{ width: '100%', borderRadius: '8px' }} 
+                    placeholder="Age" 
+                    value={newAge}
+                    onChange={(e) => setNewAge(e.target.value)}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Gender</label>
+                  <select 
+                    className="search-bar" 
+                    style={{ width: '100%', borderRadius: '8px', cursor: 'pointer' }}
+                    value={newGender}
+                    onChange={(e) => setNewGender(e.target.value)}
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Condition / Diagnosis</label>
+                <input 
+                  type="text" 
+                  className="search-bar" 
+                  style={{ width: '100%', borderRadius: '8px' }} 
+                  placeholder="e.g. ACL Tear, Frozen Shoulder" 
+                  value={newCondition}
+                  onChange={(e) => setNewCondition(e.target.value)}
+                />
+              </div>
+              <button 
+                className="glass-button" 
+                onClick={handleAddPatient} 
+                style={{ width: '100%', background: 'var(--primary)', color: 'white', border: 'none', padding: '12px', marginTop: '10px', fontWeight: '600', fontSize: '1rem' }}
+              >
+                Save Patient
               </button>
             </div>
           </div>
