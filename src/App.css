@@ -203,8 +203,8 @@
 
 /* Charts & Lists Area */
 .dashboard-content-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
@@ -338,14 +338,90 @@
   flex-shrink: 0;
 }
 
-.anatomy-grid {
-  grid-template-columns: 320px 1fr;
+.anatomy-grid,
+.grid-1-3,
+.grid-2-1,
+.grid-1-1,
+.grid-3-2,
+.grid-1-1-1,
+.responsive-grid-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-/* --- Responsive Design for Mobile Devices --- */
-@media (max-width: 1024px) {
-  .dashboard-content-grid, .anatomy-grid {
-    grid-template-columns: 1fr;
+/* Appointment card details */
+.appointment-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  width: 100%;
+}
+.appointment-card-left {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex: 1;
+}
+.appointment-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  margin-left: 16px;
+  flex-shrink: 0;
+}
+.appointment-time-col {
+  width: 90px;
+  flex-shrink: 0;
+}
+.appointment-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Tele-Rehab Webcam PiP default size */
+.tele-rehab-pip {
+  width: 180px;
+  height: 135px;
+  transition: all 0.3s ease;
+}
+
+/* --- Responsive Design for Mobile/Desktop Devices --- */
+@media (min-width: 1025px) {
+  .dashboard-content-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+  }
+  .anatomy-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+  }
+  .grid-1-3 {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+  }
+  .grid-2-1 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+  }
+  .grid-1-1 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .grid-3-2 {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+  }
+  .grid-1-1-1 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .responsive-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -474,5 +550,55 @@
   .anatomy-canvas-container {
     min-height: 380px !important;
     height: 380px !important;
+  }
+
+  /* Added mobile responsiveness styles */
+  
+  .appointment-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .appointment-card-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+  }
+  
+  .appointment-card-right {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  
+  .appointment-time-col {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .appointment-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .appointment-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tele-rehab-pip {
+    width: 120px !important;
+    height: 90px !important;
+    bottom: 12px !important;
+    right: 12px !important;
   }
 }

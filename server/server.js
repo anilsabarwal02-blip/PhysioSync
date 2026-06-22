@@ -262,6 +262,47 @@ app.get('/api/patients', authenticateToken, async (req, res) => {
   }
 });
 
+// Create Patient
+app.post('/api/patients', authenticateToken, async (req, res) => {
+  const { name, age, gender, condition } = req.body;
+  if (!name || !condition) {
+    return res.status(400).json({ error: 'Name and condition are required' });
+  }
+
+  try {
+    // Check if patient already exists
+    const existing = await Patient.findOne({ name, doctor_id: req.user.doctorId });
+    if (existing && !existing.deleted) {
+      return res.status(409).json({ error: 'Patient with this name already exists' });
+    }
+    if (existing && existing.deleted) {
+      existing.deleted = false;
+      existing.deleted_at = undefined;
+      existing.age = age || existing.age;
+      existing.gender = gender || existing.gender;
+      existing.condition = condition;
+      await existing.save();
+      return res.status(200).json(existing);
+    }
+
+    const newPatient = await Patient.create({
+      doctor_id: req.user.doctorId,
+      name,
+      age: age || null,
+      gender: gender || null,
+      condition,
+      student: 'None',
+      status: 'Pending',
+      last_visit: 'New Patient'
+    });
+
+    res.status(201).json(newPatient);
+  } catch (err) {
+    console.error('Create patient error:', err);
+    res.status(500).json({ error: 'Failed to create patient' });
+  }
+});
+
 // Get Student Logbook Cases (Derived from Patients table)
 app.get('/api/patients/logs', authenticateToken, async (req, res) => {
   try {
@@ -612,6 +653,10 @@ app.put('/api/wearables', authenticateToken, async (req, res) => {
 });
 
 // Start Express Server
-app.listen(PORT, () => {
-  console.log(`PhysioSync backend server running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`PhysioSync backend server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

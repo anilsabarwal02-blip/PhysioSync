@@ -352,7 +352,7 @@ const WearableSync = () => {
       {/* BLE PAIRING MODAL */}
       {isPairing && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="glass-panel" style={{ width: '450px', padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'center' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '450px', margin: '0 16px', padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'center' }}>
             <h3 style={{ margin: 0, display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
               <Bluetooth size={22} color="var(--primary)" /> Wearable BLE Setup
             </h3>
@@ -429,7 +429,7 @@ const WearableSync = () => {
       )}
 
       {/* DASHBOARD CHARTS SECTION */}
-      <div className="dashboard-content-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '24px' }}>
+      <div className="dashboard-content-grid grid-1-1" style={{ marginBottom: '24px' }}>
         
         {/* Apple Watch HR Card */}
         <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '300px' }}>
@@ -509,7 +509,7 @@ const WearableSync = () => {
 
       {/* EXERCISE CONTROLLER & SIGNAL STATUS */}
       {isSyncing && (
-        <div className="dashboard-content-grid" style={{ gridTemplateColumns: '3fr 2fr', gap: '20px', marginBottom: '24px' }}>
+        <div className="dashboard-content-grid grid-3-2" style={{ marginBottom: '24px' }}>
           
           {/* Active Session Controller */}
           <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -553,7 +553,7 @@ const WearableSync = () => {
             </div>
 
             {/* Rep counter and Metrics */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '10px' }}>
+            <div className="grid-1-1-1" style={{ marginTop: '10px' }}>
               <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rep Count (Auto Detected)</span>
                 <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: '4px 0 0 0', color: 'var(--primary)' }}>{reps}</p>

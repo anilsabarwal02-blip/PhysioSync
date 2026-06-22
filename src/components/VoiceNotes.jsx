@@ -6,6 +6,7 @@ const VoiceNotes = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [savedNotes, setSavedNotes] = useState([]);
+  const lastProcessedIndexRef = useRef(-1);
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -39,8 +40,9 @@ const VoiceNotes = () => {
       recognition.onresult = (event) => {
         let currentTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
+          if (event.results[i].isFinal && i > lastProcessedIndexRef.current) {
             currentTranscript += event.results[i][0].transcript + ' ';
+            lastProcessedIndexRef.current = i;
           }
         }
         if (currentTranscript) {
@@ -121,6 +123,7 @@ const VoiceNotes = () => {
     } else {
       setMicBlocked(false);
       try {
+        lastProcessedIndexRef.current = -1;
         recognitionRef.current.start();
         setIsRecording(true);
       } catch (err) {
@@ -168,7 +171,7 @@ const VoiceNotes = () => {
 
       <div className="dashboard-content-grid">
         <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <h3>New Note Dictation</h3>
             <button 
               className="glass-button" 
@@ -236,7 +239,7 @@ const VoiceNotes = () => {
             onChange={(e) => setTranscript(e.target.value)}
           />
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <button 
               className="glass-button" 
               style={{ 

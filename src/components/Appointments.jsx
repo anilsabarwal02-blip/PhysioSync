@@ -134,7 +134,7 @@ const Appointments = () => {
         </div>
       </header>
 
-      <div className="dashboard-content-grid" style={{ gridTemplateColumns: '1fr 3fr', alignItems: 'start' }}>
+      <div className="dashboard-content-grid grid-1-3" style={{ alignItems: 'start' }}>
         
         {/* Left Column: Mini Calendar & Stats */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -192,7 +192,7 @@ const Appointments = () => {
 
         {/* Right Column: Appointment List */}
         <div className="glass-panel" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <h3>Today's Schedule {filterType !== 'All' ? `(${filterType})` : ''}</h3>
             <div style={{ position: 'relative' }}>
               <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '10px' }} />
@@ -332,7 +332,7 @@ const Appointments = () => {
       {/* Add Appointment Modal */}
       {showAddModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="glass-panel" style={{ width: '450px', padding: '24px', position: 'relative', animation: 'scaleIn 0.3s ease' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '450px', margin: '0 16px', padding: '24px', position: 'relative', animation: 'scaleIn 0.3s ease' }}>
             <button onClick={() => setShowAddModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
               <X size={20} />
             </button>
@@ -387,7 +387,7 @@ const Appointments = () => {
       {/* Delete Confirmation Modal */}
       {appointmentToDelete && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="glass-panel" style={{ width: '400px', padding: '24px', position: 'relative', textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', margin: '0 16px', padding: '24px', position: 'relative', textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
             <h3 style={{ margin: '0 0 16px 0', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <Trash2 size={22} /> Delete Appointment
             </h3>

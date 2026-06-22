@@ -218,6 +218,7 @@ const AnatomyViewer = () => {
 
           {/* Actual WebGL Canvas */}
           <div
+            className="anatomy-canvas-container"
             style={{
               flex: 1,
               background: '#020617',

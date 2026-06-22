@@ -1,4 +1,19 @@
-const API_BASE_URL = `http://${window.location.hostname}:5000/api`;
+const getApiBaseUrl = () => {
+  const { hostname, port } = window.location;
+  
+  // If we are running on Vercel or a deployed production domain
+  const isProduction = hostname.endsWith('.vercel.app') || 
+                       (hostname !== 'localhost' && hostname !== '127.0.0.1' && !/^(192\.168\.|10\.|172\.)/.test(hostname) && !port);
+  
+  if (isProduction) {
+    return '/api';
+  }
+  
+  // Otherwise (local development or Capacitor development), connect to port 5000 of the hostname
+  return `http://${hostname}:5000/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 let isBackendOffline = false;
 
 // Health check endpoint simulation or connection status checker
@@ -77,7 +92,7 @@ export const api = {
   getCurrentUser: async () => {
     try {
       return await request('/auth/me');
-    } catch (err) {
+    } catch {
       const stored = localStorage.getItem('currentUser');
       return stored ? JSON.parse(stored) : null;
     }
@@ -108,6 +123,13 @@ export const api = {
   // Patients & Logbook Services
   getPatients: async () => {
     return request('/patients');
+  },
+
+  createPatient: async (patientData) => {
+    return request('/patients', {
+      method: 'POST',
+      body: JSON.stringify(patientData)
+    });
   },
 
   getLogs: async () => {

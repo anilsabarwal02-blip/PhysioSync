@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Phone, PhoneOff, Video, VideoOff, Mic, MicOff, 
   Share, Maximize, Clock, Activity, RotateCcw, 
-  User, CheckCircle, ShieldAlert, Award, ChevronLeft
+  User, CheckCircle, ShieldAlert, Award, ChevronLeft, Plus, X
 } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
@@ -26,6 +26,13 @@ const TeleRehab = () => {
   // Exercise config
   const [exercise, setExercise] = useState('Knee Extension');
   const [reps, setReps] = useState(0);
+
+  // Add Patient form
+  const [showAddPatient, setShowAddPatient] = useState(false);
+  const [newPatientName, setNewPatientName] = useState('');
+  const [newPatientAge, setNewPatientAge] = useState('');
+  const [newPatientGender, setNewPatientGender] = useState('Male');
+  const [newPatientCondition, setNewPatientCondition] = useState('');
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -182,6 +189,50 @@ const TeleRehab = () => {
     setCameraActive(true);
     setMicActive(true);
     setIsScreenSharing(false);
+  };
+
+  const handleAddPatient = async () => {
+    if (!newPatientName.trim() || !newPatientCondition.trim()) {
+      alert('Patient name and condition are required.');
+      return;
+    }
+
+    const patientData = {
+      name: newPatientName.trim(),
+      age: newPatientAge ? parseInt(newPatientAge) : null,
+      gender: newPatientGender,
+      condition: newPatientCondition.trim()
+    };
+
+    try {
+      const saved = await api.createPatient(patientData);
+      const updatedPatients = [...patients, saved];
+      setPatients(updatedPatients);
+      setSelectedPatient(saved);
+      setExercise(getDefaultExercise(saved.condition));
+    } catch (err) {
+      if (!getBackendStatus()) {
+        const newP = {
+          id: 'p-' + Date.now(),
+          ...patientData
+        };
+        const updatedPatients = [...patients, newP];
+        setPatients(updatedPatients);
+        setSelectedPatient(newP);
+        setExercise(getDefaultExercise(newP.condition));
+        localStorage.setItem('patients_list', JSON.stringify(updatedPatients));
+      } else {
+        alert(err.message || 'Failed to add patient.');
+        return;
+      }
+    }
+
+    // Reset form
+    setNewPatientName('');
+    setNewPatientAge('');
+    setNewPatientGender('Male');
+    setNewPatientCondition('');
+    setShowAddPatient(false);
   };
 
   // Draw simulated skeleton based on active exercise
@@ -552,13 +603,13 @@ const TeleRehab = () => {
 
       {/* CALL STATE: IDLE */}
       {callState === 'idle' && (
-        <div className="glass-panel" style={{ padding: '32px', maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ padding: '28px', maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)' }}>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
-            <h2 style={{ fontSize: '1.4rem', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottom: '1px solid var(--border)', paddingBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+            <h2 style={{ fontSize: '1.3rem', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
               <User size={22} color="var(--primary)" /> Setup Tele-Rehab Session
             </h2>
-            <span style={{ fontSize: '0.8rem', background: 'var(--primary-glow)', color: 'var(--primary)', padding: '4px 12px', borderRadius: '12px', fontWeight: 'bold' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>
               Host: {doctorName}
             </span>
           </div>
@@ -568,7 +619,18 @@ const TeleRehab = () => {
             {/* Left: Patient Select */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>Select Patient</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>Select Patient</label>
+                  <button 
+                    onClick={() => setShowAddPatient(!showAddPatient)}
+                    style={{ 
+                      background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', 
+                      fontSize: '0.8rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' 
+                    }}
+                  >
+                    {showAddPatient ? <><X size={14} /> Cancel</> : <><Plus size={14} /> Add Patient</>}
+                  </button>
+                </div>
                 <select 
                   className="search-bar" 
                   value={selectedPatient ? (selectedPatient._id || selectedPatient.id) : ''} 
@@ -583,13 +645,51 @@ const TeleRehab = () => {
                 </select>
               </div>
 
-              {selectedPatient && (
-                <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.3)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* Add Patient Inline Form */}
+              {showAddPatient && (
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px dashed var(--primary)', background: 'rgba(13, 148, 136, 0.03)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Plus size={16} /> New Patient
+                  </h4>
+                  <input 
+                    type="text" placeholder="Patient Name *" value={newPatientName} onChange={(e) => setNewPatientName(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="number" placeholder="Age" value={newPatientAge} onChange={(e) => setNewPatientAge(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', flex: 1 }}
+                    />
+                    <select 
+                      value={newPatientGender} onChange={(e) => setNewPatientGender(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', flex: 1 }}
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <input 
+                    type="text" placeholder="Clinical Condition *" value={newPatientCondition} onChange={(e) => setNewPatientCondition(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
+                  />
+                  <button 
+                    onClick={handleAddPatient}
+                    className="glass-button"
+                    style={{ padding: '8px 16px', fontSize: '0.85rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', width: '100%' }}
+                  >
+                    Add Patient
+                  </button>
+                </div>
+              )}
+
+              {selectedPatient && !showAddPatient && (
+                <div style={{ padding: '14px', borderRadius: '10px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Age / Gender</span>
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{selectedPatient.age || 'N/A'} Yrs / {selectedPatient.gender || 'N/A'}</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Clinical Diagnosis</span>
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--primary)', marginTop: '2px' }}>{selectedPatient.condition}</span>
                   </div>
@@ -614,11 +714,11 @@ const TeleRehab = () => {
               </div>
 
               <div className="responsive-grid-2" style={{ gap: '10px' }}>
-                <div className="glass-panel" style={{ padding: '10px', borderRadius: '8px', textAlign: 'center', background: 'rgba(255,255,255,0.3)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Target reps</span>
                   <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '0.9rem' }}>15 Reps</p>
                 </div>
-                <div className="glass-panel" style={{ padding: '10px', borderRadius: '8px', textAlign: 'center', background: 'rgba(255,255,255,0.3)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>AI Tracking</span>
                   <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--accent)' }}>Active (2D)</p>
                 </div>
@@ -730,7 +830,7 @@ const TeleRehab = () => {
             </div>
 
             {/* Doctor Local Webcam Picture-in-Picture PIP */}
-            <div style={{ 
+            <div className="tele-rehab-pip" style={{ 
               position: 'absolute', 
               bottom: '20px', 
               right: '20px', 
@@ -771,11 +871,12 @@ const TeleRehab = () => {
 
           {/* Connected Call Bottom Control Bar */}
           <div style={{ 
-            padding: '16px 24px', 
+            padding: '16px 12px', 
             display: 'flex', 
             justifyContent: 'center', 
             alignItems: 'center', 
-            gap: '16px', 
+            gap: '12px', 
+            flexWrap: 'wrap',
             background: '#0b101c', 
             borderTop: '1px solid rgba(255,255,255,0.08)' 
           }}>

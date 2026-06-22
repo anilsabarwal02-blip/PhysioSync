@@ -13,7 +13,7 @@ const Posture = () => {
         </div>
       </header>
 
-      <div className="dashboard-content-grid" style={{ gridTemplateColumns: '2fr 1fr' }}>
+      <div className="dashboard-content-grid grid-2-1">
         
         {/* Camera / Analysis Canvas */}
         <div className="glass-panel" style={{ padding: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

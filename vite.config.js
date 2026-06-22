@@ -9,9 +9,5 @@ export default defineConfig({
     alias: {
       '@mediapipe/pose': path.resolve(__dirname, './src/components/mediapipe-shim.js')
     }
-  },
-  server: {
-    host: true,
-    port: 5173
   }
 })
