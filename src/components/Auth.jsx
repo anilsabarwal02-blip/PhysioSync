@@ -2,6 +2,25 @@ import React, { useState } from 'react';
 import { Activity, Lock, User } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
+const hashPassword = async (password) => {
+  if (!password) return '';
+  try {
+    const msgBuffer = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (err) {
+    console.error('Hashing failed, using fallback', err);
+    let hash = 0;
+    for (let i = 0; i < password.length; i++) {
+      const char = password.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return 'fallback-' + hash;
+  }
+};
+
 const Auth = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ name: '', doctorId: '', password: '' });
@@ -24,8 +43,14 @@ const Auth = ({ onLogin }) => {
           if (!getBackendStatus()) {
             // Local fallback logic
             const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const user = storedUsers.find(u => u.doctorId === formData.doctorId && u.password === formData.password);
-            if (user) {
+            const hashedPassword = await hashPassword(formData.password);
+            const userIdx = storedUsers.findIndex(u => u.doctorId === formData.doctorId && (u.password === hashedPassword || u.password === formData.password));
+            if (userIdx !== -1) {
+              const user = storedUsers[userIdx];
+              if (user.password !== hashedPassword) {
+                user.password = hashedPassword;
+                localStorage.setItem('users', JSON.stringify(storedUsers));
+              }
               localStorage.setItem('isAuthenticated', 'true');
               localStorage.setItem('currentUser', JSON.stringify(user));
               onLogin(user);
@@ -48,7 +73,8 @@ const Auth = ({ onLogin }) => {
             // Local fallback registration
             const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
             const newId = 'DR-' + Math.floor(1000 + Math.random() * 9000);
-            const newUser = { name: formData.name, doctorId: newId, password: formData.password };
+            const hashedPassword = await hashPassword(formData.password);
+            const newUser = { name: formData.name, doctorId: newId, password: hashedPassword };
             storedUsers.push(newUser);
             localStorage.setItem('users', JSON.stringify(storedUsers));
             
