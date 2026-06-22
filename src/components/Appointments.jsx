@@ -1,6 +1,68 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, MapPin, User, Video, Plus, Search, FileText, ChevronDown, ChevronUp, CheckCircle, X, Trash2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Calendar as CalendarIcon, Clock, MapPin, User, Video, Plus, Search, FileText, ChevronDown, ChevronUp, CheckCircle, X, Trash2,
+  Stethoscope, BedDouble, AlertTriangle, Home, Activity, HeartPulse, Smile 
+} from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
+
+const APPOINTMENT_TYPES = [
+  'OPD',
+  'IPD',
+  'Emergency',
+  'Clinic Session',
+  'Tele Rehab',
+  'Home Visit',
+  'Diagnostic',
+  'Antenatal',
+  'Paediatric'
+];
+
+const getTypeIcon = (type) => {
+  switch (type) {
+    case 'Tele Rehab':
+    case 'Tele-Rehab':
+      return <Video size={16} />;
+    case 'Home Visit':
+      return <Home size={16} />;
+    case 'OPD':
+      return <Stethoscope size={16} />;
+    case 'IPD':
+      return <BedDouble size={16} />;
+    case 'Emergency':
+      return <AlertTriangle size={16} />;
+    case 'Diagnostic':
+      return <Activity size={16} />;
+    case 'Antenatal':
+      return <HeartPulse size={16} />;
+    case 'Paediatric':
+      return <Smile size={16} />;
+    case 'Clinic Session':
+    default:
+      return <CalendarIcon size={16} />;
+  }
+};
+
+const getTagColor = (type) => {
+  switch (type) {
+    case 'Tele Rehab':
+    case 'Tele-Rehab':
+      return 'var(--secondary)';
+    case 'Emergency':
+      return 'var(--danger)';
+    case 'Home Visit':
+      return '#10b981';
+    case 'OPD':
+      return 'var(--primary)';
+    case 'IPD':
+      return '#3b82f6';
+    case 'Antenatal':
+      return '#ec4899';
+    case 'Paediatric':
+      return '#84cc16';
+    default:
+      return 'var(--text-muted)';
+  }
+};
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -32,7 +94,7 @@ const Appointments = () => {
   // Form input states
   const [newPatientName, setNewPatientName] = useState('');
   const [newDate, setNewDate] = useState('');
-  const [newType, setNewType] = useState('In-Clinic Session');
+  const [newType, setNewType] = useState('OPD');
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
 
   const formatTime12Hour = (timeStr) => {
@@ -50,8 +112,6 @@ const Appointments = () => {
       alert("Please fill in all fields (Name and Date) to schedule the appointment.");
       return;
     }
-
-    const typeParsed = newType.includes('Tele-Rehab') ? 'Tele-Rehab' : 'In-Clinic';
     
     // Auto-assign current time of creation as default time
     const now = new Date();
@@ -61,7 +121,7 @@ const Appointments = () => {
 
     const appData = {
       patient: newPatientName,
-      type: typeParsed,
+      type: newType,
       treatment: 'General Physiotherapy',
       time: defaultTimeFormatted || '10:00 AM',
       date: newDate,
@@ -91,12 +151,11 @@ const Appointments = () => {
     // Reset form states
     setNewPatientName('');
     setNewDate('');
-    setNewType('In-Clinic Session');
+    setNewType('OPD');
     setShowAddModal(false);
   };
 
-  const inClinicCount = appointments.filter(app => app.type === 'In-Clinic').length;
-  const teleRehabCount = appointments.filter(app => app.type === 'Tele-Rehab').length;
+
 
   const filteredAppointments = appointments.filter(app => {
     const matchesSearch = app.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,43 +212,41 @@ const Appointments = () => {
                 <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{appointments.length} Sessions Scheduled</p>
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div 
-                onClick={() => setFilterType(filterType === 'In-Clinic' ? 'All' : 'In-Clinic')}
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  fontSize: '0.9rem', 
-                  padding: '8px 12px', 
-                  background: filterType === 'In-Clinic' ? 'rgba(13, 148, 136, 0.15)' : 'var(--glass-bg)', 
-                  border: filterType === 'In-Clinic' ? '1px solid var(--primary)' : '1px solid transparent',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                title={filterType === 'In-Clinic' ? 'Click to show all appointments' : 'Click to filter by In-Clinic'}
-              >
-                <span style={{ color: filterType === 'In-Clinic' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: filterType === 'In-Clinic' ? '600' : 'normal' }}>In-Clinic:</span>
-                <span style={{ fontWeight: '700', color: filterType === 'In-Clinic' ? 'var(--primary)' : 'var(--text-main)' }}>{inClinicCount}</span>
-              </div>
-              <div 
-                onClick={() => setFilterType(filterType === 'Tele-Rehab' ? 'All' : 'Tele-Rehab')}
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  fontSize: '0.9rem', 
-                  padding: '8px 12px', 
-                  background: filterType === 'Tele-Rehab' ? 'rgba(99, 102, 241, 0.15)' : 'var(--glass-bg)', 
-                  border: filterType === 'Tele-Rehab' ? '1px solid var(--secondary)' : '1px solid transparent',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                title={filterType === 'Tele-Rehab' ? 'Click to show all appointments' : 'Click to filter by Tele-Rehab'}
-              >
-                <span style={{ color: filterType === 'Tele-Rehab' ? 'var(--secondary)' : 'var(--text-muted)', fontWeight: filterType === 'Tele-Rehab' ? '600' : 'normal' }}>Tele-Rehab:</span>
-                <span style={{ fontWeight: '700', color: filterType === 'Tele-Rehab' ? 'var(--secondary)' : 'var(--text-main)' }}>{teleRehabCount}</span>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+              {APPOINTMENT_TYPES.map(type => {
+                const count = appointments.filter(app => app.type === type || (type === 'Tele Rehab' && app.type === 'Tele-Rehab')).length;
+                const isSelected = filterType === type || (type === 'Tele Rehab' && filterType === 'Tele-Rehab');
+                
+                return (
+                  <div 
+                    key={type}
+                    onClick={() => setFilterType(isSelected ? 'All' : type)}
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      fontSize: '0.85rem', 
+                      padding: '8px 12px', 
+                      background: isSelected ? 'rgba(13, 148, 136, 0.15)' : 'var(--glass-bg)', 
+                      border: isSelected ? '1px solid var(--primary)' : '1px solid transparent',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                    title={`Click to filter by ${type}`}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {getTypeIcon(type)}
+                      <span style={{ color: isSelected ? 'var(--primary)' : 'var(--text-muted)', fontWeight: isSelected ? '600' : 'normal' }}>
+                        {type}
+                      </span>
+                    </div>
+                    <span style={{ fontWeight: '700', color: isSelected ? 'var(--primary)' : 'var(--text-main)' }}>
+                      {count}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -251,8 +308,8 @@ const Appointments = () => {
                           <User size={18} color="var(--primary)" /> {app.patient}
                         </h4>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{app.treatment}</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '0.85rem', color: app.type === 'Tele-Rehab' ? 'var(--accent)' : 'var(--text-muted)', fontWeight: '500' }}>
-                          {app.type === 'Tele-Rehab' ? <Video size={16} /> : <MapPin size={16} />} 
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '0.85rem', color: getTagColor(app.type), fontWeight: '600' }}>
+                          {getTypeIcon(app.type)} 
                           {app.type}
                         </div>
                       </div>
@@ -371,9 +428,9 @@ const Appointments = () => {
                   value={newType}
                   onChange={(e) => setNewType(e.target.value)}
                 >
-                  <option>In-Clinic Session</option>
-                  <option>Tele-Rehab (Video)</option>
-                  <option>Home Visit</option>
+                  {APPOINTMENT_TYPES.map(type => (
+                    <option key={type}>{type}</option>
+                  ))}
                 </select>
               </div>
               <button 
