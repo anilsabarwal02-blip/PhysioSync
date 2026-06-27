@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, KeyRound, Check, X } from 'lucide-react';
+import { useState } from 'react';
+import { Send, Bot, User, Sparkles, KeyRound, X } from 'lucide-react';
 
 const AIAssistant = ({ isOpen, onClose }) => {
   const [messages, setMessages] = useState([

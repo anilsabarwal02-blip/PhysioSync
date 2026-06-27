@@ -1,25 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, RotateCcw, Calendar, Users, Clock, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Trash2, RotateCcw, Calendar, Users, Clock, ArrowLeft } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
 const RecycleBin = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('patients'); // 'patients' or 'appointments'
-  const [appointments, setAppointments] = useState([]);
-  const [patients, setPatients] = useState([]);
+  const [appointments, setAppointments] = useState(() => {
+    return JSON.parse(localStorage.getItem('appointments_bin') || '[]');
+  });
+  const [patients, setPatients] = useState(() => {
+    return JSON.parse(localStorage.getItem('patients_bin') || '[]');
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [deletePatientModal, setDeletePatientModal] = useState(null); // { id, name }
   const [deleteAppointmentModal, setDeleteAppointmentModal] = useState(null); // { id, name }
   const [emptyBinModal, setEmptyBinModal] = useState(false); // boolean
 
   const fetchDeletedItems = async () => {
-    // Load from localStorage immediately so UI renders instantly (0ms delay)
-    const localAppointmentsBin = JSON.parse(localStorage.getItem('appointments_bin') || '[]');
-    const localPatientsBin = JSON.parse(localStorage.getItem('patients_bin') || '[]');
-    setAppointments(localAppointmentsBin);
-    setPatients(localPatientsBin);
-
     setIsLoading(true);
     try {
       const data = await api.getRecycleBin();
@@ -37,7 +35,30 @@ const RecycleBin = () => {
   };
 
   useEffect(() => {
-    fetchDeletedItems();
+    let active = true;
+    const load = async () => {
+      try {
+        const data = await api.getRecycleBin();
+        if (active) {
+          const apps = data.appointments || [];
+          const pats = data.patients || [];
+          setAppointments(apps);
+          setPatients(pats);
+          localStorage.setItem('appointments_bin', JSON.stringify(apps));
+          localStorage.setItem('patients_bin', JSON.stringify(pats));
+        }
+      } catch (err) {
+        console.warn("[API] Failed to fetch recycle bin from backend, using local data. Error:", err.message);
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleRestoreAppointment = async (id, name) => {
@@ -113,7 +134,7 @@ const RecycleBin = () => {
 
   const executePermanentDeleteAppointment = async () => {
     if (!deleteAppointmentModal) return;
-    const { id, name } = deleteAppointmentModal;
+    const { id } = deleteAppointmentModal;
     setDeleteAppointmentModal(null);
     try {
       await api.permanentDeleteAppointment(id);

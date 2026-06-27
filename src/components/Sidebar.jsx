@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Users, FileText, Calendar, Settings, MessageSquare, Mic, BrainCircuit, Watch, MonitorSmartphone, LogOut, ChevronLeft, ChevronRight, Trash2, Bone } from 'lucide-react';
+import { Activity, Calendar, Settings, Mic, BrainCircuit, Watch, MonitorSmartphone, LogOut, ChevronLeft, ChevronRight, Bone, Camera } from 'lucide-react';
 
-const Sidebar = ({ onLogout, onToggleAI, isAIAssistantOpen }) => {
+const Sidebar = ({ onLogout }) => {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -81,6 +81,10 @@ const Sidebar = ({ onLogout, onToggleAI, isAIAssistantOpen }) => {
         <NavLink to="/wearable-sync" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Watch size={20} />
           <span>Wearable Sync</span>
+        </NavLink>
+        <NavLink to="/posture" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <Camera size={20} />
+          <span>AI Posture</span>
         </NavLink>
         <NavLink to="/tele-rehab" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <MonitorSmartphone size={20} />

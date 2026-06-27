@@ -5,11 +5,11 @@ async function query() {
   try {
     await initDb();
     console.log('--- PATIENTS ---');
-    const patients = await Patient.findAll();
+    const patients = await Patient.find();
     console.log(JSON.stringify(patients, null, 2));
 
     console.log('--- APPOINTMENTS ---');
-    const appointments = await Appointment.findAll();
+    const appointments = await Appointment.find();
     console.log(JSON.stringify(appointments, null, 2));
 
     process.exit(0);

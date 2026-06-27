@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  Calendar as CalendarIcon, Clock, MapPin, User, Video, Plus, Search, FileText, ChevronDown, ChevronUp, CheckCircle, X, Trash2,
+  Calendar as CalendarIcon, User, Video, Plus, Search, FileText, ChevronDown, ChevronUp, CheckCircle, X, Trash2,
   Stethoscope, BedDouble, AlertTriangle, Home, Activity, HeartPulse, Smile 
 } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
@@ -65,15 +65,12 @@ const getTagColor = (type) => {
 };
 
 const Appointments = () => {
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState(() => {
+    const saved = localStorage.getItem('appointments_list');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   useEffect(() => {
-    // Load from localStorage immediately so UI renders instantly (0ms delay)
-    const saved = localStorage.getItem('appointments_list');
-    if (saved) {
-      setAppointments(JSON.parse(saved));
-    }
-
     const fetchAppointments = async () => {
       try {
         const data = await api.getAppointments();
@@ -488,7 +485,7 @@ const Appointments = () => {
                   try {
                     await api.deleteAppointment(appointmentToDelete.id);
                     setAppointments(appointments.filter(a => a.id !== appointmentToDelete.id));
-                  } catch (err) {
+                  } catch {
                     if (!getBackendStatus()) {
                       const updatedApps = appointments.filter(a => a.id !== appointmentToDelete.id);
                       setAppointments(updatedApps);

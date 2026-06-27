@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Sparkles, FileSignature, CheckCircle, Clock, AlertTriangle, CheckSquare, Printer, Sliders, Trash2, Plus, X } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
@@ -290,6 +290,8 @@ const TreatmentPlanner = () => {
   const [diagnosis, setDiagnosis] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [plan, setPlan] = useState(null);
+  
+  const [refId, setRefId] = useState('');
   const [activeTab, setActiveTab] = useState('exercises');
   const [dietPreference, setDietPreference] = useState('Non-Veg');
 
@@ -350,7 +352,7 @@ const TreatmentPlanner = () => {
         phase_checklist: completedGoals,
         status: 'Pending'
       });
-    } catch (err) {
+    } catch {
       // Offline fallback
     }
 
@@ -445,7 +447,7 @@ const TreatmentPlanner = () => {
         phase_checklist: completedGoals,
         status: 'Approved'
       });
-    } catch (err) {
+    } catch {
       if (!getBackendStatus()) {
         localStorage.setItem(`patient_status_${patientName}`, 'Approved');
         localStorage.setItem(`log_status_${logId}`, 'Approved');
@@ -492,17 +494,19 @@ const TreatmentPlanner = () => {
           phases: existingProto.exercises,
           diet: selectedDiet
         });
+        setRefId(`PS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
         setPainScore(existingProto.pain_score);
         setCompletedGoals(existingProto.phase_checklist || []);
         setIsApproved(existingProto.status === 'Approved');
         if (existingProto.exercises?.[0]?.exercises?.[0]) {
           setSelectedExercise(existingProto.exercises[0].exercises[0]);
         }
-      } catch (err) {
+      } catch {
         setPlan({
           ...selectedProtocol,
           diet: selectedDiet
         });
+        setRefId(`PS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
         setCompletedGoals([]);
         setIsApproved(false);
         if (selectedProtocol?.phases?.[0]?.exercises?.[0]) {
@@ -531,7 +535,7 @@ const TreatmentPlanner = () => {
       };
     } else if (pain >= 4) {
       let orig = ex.parameters;
-      let adj = orig;
+      let adj;
       if (orig.includes('3 sets x 10 reps')) {
         adj = orig.replace('3 sets x 10 reps', '2 sets x 8 reps').replace('5s hold', '8s hold');
       } else if (orig.includes('3 sets x 12 reps')) {
@@ -1293,7 +1297,7 @@ const TreatmentPlanner = () => {
                 </div>
                 <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#64748b' }}>
                   <strong>Date:</strong> {new Date().toLocaleDateString()}<br />
-                  <strong>Ref ID:</strong> PS-{Math.random().toString(36).substr(2, 9).toUpperCase()}
+                  <strong>Ref ID:</strong> {refId}
                 </div>
               </div>
 

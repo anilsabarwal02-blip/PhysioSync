@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Phone, PhoneOff, Video, VideoOff, Mic, MicOff, 
-  Share, Maximize, Clock, Activity, RotateCcw, 
-  User, CheckCircle, ShieldAlert, Award, ChevronLeft, Plus, X
+  Share, Clock, Activity, RotateCcw, 
+  User, CheckCircle, Award, ChevronLeft, Plus, X
 } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
@@ -16,16 +16,27 @@ const TeleRehab = () => {
   const [micActive, setMicActive] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [duration, setDuration] = useState(0);
-  const [localStream, setLocalStream] = useState(null);
+  const localStreamRef = useRef(null);
 
   // Dynamic Patient Selection
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [doctorName, setDoctorName] = useState('Dr. Sharma');
+  const [doctorName] = useState(() => {
+    const currentUserStr = localStorage.getItem('currentUser');
+    if (currentUserStr) {
+      const user = JSON.parse(currentUserStr);
+      return user.name || 'Dr. Sharma';
+    }
+    return 'Dr. Sharma';
+  });
   
   // Exercise config
   const [exercise, setExercise] = useState('Knee Extension');
   const [reps, setReps] = useState(0);
+  const repsRef = useRef(0);
+  useEffect(() => {
+    repsRef.current = reps;
+  }, [reps]);
 
   // Add Patient form
   const [showAddPatient, setShowAddPatient] = useState(false);
@@ -54,18 +65,11 @@ const TeleRehab = () => {
 
   // Fetch patients list and doctor profile on mount
   useEffect(() => {
-    // Fetch doctor name
-    const currentUserStr = localStorage.getItem('currentUser');
-    if (currentUserStr) {
-      const user = JSON.parse(currentUserStr);
-      setDoctorName(user.name || 'Dr. Sharma');
-    }
-
     const fetchPatients = async () => {
       let patientsList = [];
       try {
         patientsList = await api.getPatients();
-      } catch (err) {
+      } catch {
         if (!getBackendStatus()) {
           patientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
         }
@@ -111,7 +115,6 @@ const TeleRehab = () => {
   // Duration timer
   useEffect(() => {
     if (callState !== 'connected') {
-      setDuration(0);
       return;
     }
     const interval = setInterval(() => {
@@ -122,34 +125,40 @@ const TeleRehab = () => {
 
   // Media Stream Webcam handler
   useEffect(() => {
+    let active = true;
     if (callState === 'connected' && cameraActive) {
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
-          setLocalStream(stream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
+          if (active) {
+            localStreamRef.current = stream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
+          } else {
+            stream.getTracks().forEach(track => track.stop());
           }
         })
         .catch(err => {
           console.warn("Webcam access blocked or unavailable, rendering simulator mode.", err);
         });
     } else {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        setLocalStream(null);
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
       }
     }
 
     return () => {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+      active = false;
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, [callState, cameraActive]);
 
   const toggleCamera = () => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setCameraActive(videoTrack.enabled);
@@ -160,8 +169,8 @@ const TeleRehab = () => {
   };
 
   const toggleMic = () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setMicActive(audioTrack.enabled);
@@ -176,16 +185,18 @@ const TeleRehab = () => {
   };
 
   const handleEndCall = () => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-      setLocalStream(null);
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
     }
     setCallState('ended');
+    setDuration(0);
   };
 
   const handleStartCall = () => {
     setCallState('ringing');
     setReps(0);
+    setDuration(0);
     setCameraActive(true);
     setMicActive(true);
     setIsScreenSharing(false);
@@ -236,7 +247,7 @@ const TeleRehab = () => {
   };
 
   // Draw simulated skeleton based on active exercise
-  const drawSkeleton = (ctx, width, height) => {
+  const drawSkeleton = useCallback((ctx, width, height) => {
     ctx.clearRect(0, 0, width, height);
 
     // Dark grid pattern background
@@ -345,7 +356,7 @@ const TeleRehab = () => {
       
       ctx.fillStyle = 'var(--accent)';
       ctx.font = `bold ${Math.round(10 * scale)}px 'Outfit', sans-serif`;
-      ctx.fillText(`TARGET: 150° | REPS: ${reps}/15`, 24 * scale, height - 38 * scale);
+      ctx.fillText(`TARGET: 150° | REPS: ${repsRef.current}/15`, 24 * scale, height - 38 * scale);
       ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${Math.round(11 * scale)}px 'Outfit', sans-serif`;
       ctx.fillText(`EXERCISE: Shoulder Abduction`, 24 * scale, height - 56 * scale);
@@ -427,7 +438,7 @@ const TeleRehab = () => {
       
       ctx.fillStyle = 'var(--accent)';
       ctx.font = `bold ${Math.round(10 * scale)}px 'Outfit', sans-serif`;
-      ctx.fillText(`TARGET: 70° | REPS: ${reps}/15`, 24 * scale, height - 38 * scale);
+      ctx.fillText(`TARGET: 70° | REPS: ${repsRef.current}/15`, 24 * scale, height - 38 * scale);
       ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${Math.round(11 * scale)}px 'Outfit', sans-serif`;
       ctx.fillText(`EXERCISE: Spine Flexion`, 24 * scale, height - 56 * scale);
@@ -518,14 +529,14 @@ const TeleRehab = () => {
 
       ctx.fillStyle = 'var(--accent)';
       ctx.font = `bold ${Math.round(10 * scale)}px 'Outfit', sans-serif`;
-      ctx.fillText(`TARGET: 170° | REPS: ${reps}/15`, 24 * scale, height - 38 * scale);
+      ctx.fillText(`TARGET: 170° | REPS: ${repsRef.current}/15`, 24 * scale, height - 38 * scale);
       ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${Math.round(11 * scale)}px 'Outfit', sans-serif`;
       ctx.fillText(`EXERCISE: Knee Extension`, 24 * scale, height - 56 * scale);
 
       return { angleVal: kneeAngleDeg, threshold: 155, recovery: 110 };
     }
-  };
+  }, [exercise]);
 
   // Canvas loop
   useEffect(() => {
@@ -564,7 +575,7 @@ const TeleRehab = () => {
       cancelAnimationFrame(animationFrameId.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, [callState, exercise]);
+  }, [callState, drawSkeleton]);
 
   const formatTime = (secs) => {
     const mins = Math.floor(secs / 60);

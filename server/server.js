@@ -3,14 +3,33 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import { initDb, seedDoctorData, Op } from './db.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { initDb, seedDoctorData } from './db.js';
 import { Doctor, Appointment, Patient, Protocol, EMRNote, Wearable } from './models.js';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'physiosync-super-secret-key-123';
+
+// Load production security and compression middlewares
+if (process.env.NODE_ENV === 'production') {
+  try {
+    const helmet = (await import('helmet')).default;
+    const compression = (await import('compression')).default;
+    app.use(helmet({
+      contentSecurityPolicy: false, // Turn off CSP to avoid blocking 3D assets loading
+    }));
+    app.use(compression());
+  } catch (err) {
+    console.warn('[PROD] Helmet or Compression failed to load:', err.message);
+  }
+}
 
 app.use(cors());
 app.use(express.json());
@@ -25,12 +44,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize MySQL database
+// Initialize MongoDB database
 try {
   await initDb();
-  console.log('MySQL connection initialized successfully.');
+  console.log('MongoDB database connection initialized successfully.');
 } catch (err) {
-  console.error('Failed to initialize MySQL database:', err);
+  console.error('Failed to initialize MongoDB database:', err);
   process.exit(1);
 }
 
@@ -42,13 +61,13 @@ const authenticateToken = async (req, res, next) => {
   const defaultDoctor = { doctorId: 'DR-DEFAULT', name: 'Dr. Sharma' };
   
   try {
-    const existing = await Doctor.findOne({ where: { doctor_id: defaultDoctor.doctorId } });
+    const existing = await Doctor.findOne({ doctor_id: defaultDoctor.doctorId });
     if (!existing) {
       await Doctor.create({ doctor_id: defaultDoctor.doctorId, name: defaultDoctor.name, password: '' });
       await seedDoctorData(defaultDoctor.doctorId);
     }
   } catch (err) {
-    console.error('Error seeding default doctor in MySQL:', err);
+    console.error('Error seeding default doctor in MongoDB:', err);
   }
 
   if (!token) {
@@ -85,7 +104,7 @@ app.post('/api/auth/register', async (req, res) => {
       password: hashedPassword
     });
 
-    // Seed default workspace data for this newly registered doctor in MySQL
+    // Seed default workspace data for this newly registered doctor in MongoDB
     await seedDoctorData(doctorId);
 
     res.status(201).json({ 
@@ -106,7 +125,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   try {
-    let doctor = await Doctor.findOne({ where: { doctor_id: doctorId } });
+    let doctor = await Doctor.findOne({ doctor_id: doctorId });
     
     if (!doctor) {
       return res.status(400).json({ error: 'Invalid Doctor ID or password' });
@@ -147,10 +166,10 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
 // Get Appointments
 app.get('/api/appointments', authenticateToken, async (req, res) => {
   try {
-    const appointments = await Appointment.findAll({
-      where: { doctor_id: req.user.doctorId, deleted: false },
-      order: [['id', 'DESC']]
-    });
+    const appointments = await Appointment.find({
+      doctor_id: req.user.doctorId,
+      deleted: false
+    }).sort({ _id: -1 });
     res.json(appointments);
   } catch (err) {
     console.error('Fetch appointments error:', err);
@@ -179,7 +198,7 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
     });
 
     // Automatically create patient record if it doesn't exist yet, or restore if soft-deleted
-    const patientExists = await Patient.findOne({ where: { name: patient, doctor_id: req.user.doctorId } });
+    const patientExists = await Patient.findOne({ name: patient, doctor_id: req.user.doctorId });
     if (!patientExists) {
       await Patient.create({
         doctor_id: req.user.doctorId,
@@ -209,7 +228,8 @@ app.put('/api/appointments/:id', authenticateToken, async (req, res) => {
   const { status, patient, type, treatment, time, duration, notes, date } = req.body;
   try {
     const appointment = await Appointment.findOne({
-      where: { id: req.params.id, doctor_id: req.user.doctorId }
+      _id: req.params.id,
+      doctor_id: req.user.doctorId
     });
 
     if (!appointment) {
@@ -226,7 +246,8 @@ app.put('/api/appointments/:id', authenticateToken, async (req, res) => {
     if (notes !== undefined) updateFields.notes = notes;
     if (date !== undefined) updateFields.date = date;
 
-    await appointment.update(updateFields);
+    Object.assign(appointment, updateFields);
+    await appointment.save();
     res.json(appointment);
   } catch (err) {
     console.error('Update appointment error:', err);
@@ -237,12 +258,12 @@ app.put('/api/appointments/:id', authenticateToken, async (req, res) => {
 // Delete Appointment (Soft Delete)
 app.delete('/api/appointments/:id', authenticateToken, async (req, res) => {
   try {
-    const [affectedCount] = await Appointment.update(
-      { deleted: true, deleted_at: new Date() },
-      { where: { id: req.params.id, doctor_id: req.user.doctorId } }
+    const result = await Appointment.updateOne(
+      { _id: req.params.id, doctor_id: req.user.doctorId },
+      { deleted: true, deleted_at: new Date() }
     );
 
-    if (affectedCount === 0) {
+    if (result.matchedCount === 0) {
       return res.status(404).json({ error: 'Appointment not found' });
     }
 
@@ -258,14 +279,12 @@ app.delete('/api/appointments/:id', authenticateToken, async (req, res) => {
 app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
   try {
     const doctorId = req.user.doctorId;
-    const totalPatients = await Patient.count({ where: { doctor_id: doctorId, deleted: false } });
-    const pendingLogs = await Patient.count({
-      where: {
-        doctor_id: doctorId,
-        student: { [Op.ne]: 'None' },
-        status: 'Pending',
-        deleted: false
-      }
+    const totalPatients = await Patient.countDocuments({ doctor_id: doctorId, deleted: false });
+    const pendingLogs = await Patient.countDocuments({
+      doctor_id: doctorId,
+      student: { $ne: 'None' },
+      status: 'Pending',
+      deleted: false
     });
     const now = new Date();
     const year = now.getFullYear();
@@ -273,29 +292,23 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
     const day = String(now.getDate()).padStart(2, '0');
     const todayStr = `${year}-${month}-${day}`;
 
-    const todaySessions = await Appointment.count({ 
-      where: { 
-        doctor_id: doctorId, 
-        date: todayStr,
-        deleted: false 
-      } 
+    const todaySessions = await Appointment.countDocuments({ 
+      doctor_id: doctorId, 
+      date: todayStr,
+      deleted: false 
     });
-    const approvedPatients = await Patient.count({
-      where: {
-        doctor_id: doctorId,
-        status: 'Approved',
-        deleted: false
-      }
+    const approvedPatients = await Patient.countDocuments({
+      doctor_id: doctorId,
+      status: 'Approved',
+      deleted: false
     });
     const recoveryRate = totalPatients > 0 ? Math.round((approvedPatients / totalPatients) * 100) : 0;
     
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const newPatientsThisMonth = await Patient.count({
-      where: {
-        doctor_id: doctorId,
-        created_at: { [Op.gte]: thirtyDaysAgo },
-        deleted: false
-      }
+    const newPatientsThisMonth = await Patient.countDocuments({
+      doctor_id: doctorId,
+      created_at: { $gte: thirtyDaysAgo },
+      deleted: false
     });
 
     res.json({
@@ -317,10 +330,10 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
 // Get Patients List
 app.get('/api/patients', authenticateToken, async (req, res) => {
   try {
-    const patients = await Patient.findAll({
-      where: { doctor_id: req.user.doctorId, deleted: false },
-      order: [['id', 'ASC']]
-    });
+    const patients = await Patient.find({
+      doctor_id: req.user.doctorId,
+      deleted: false
+    }).sort({ _id: 1 });
     res.json(patients);
   } catch (err) {
     console.error('Fetch patients error:', err);
@@ -337,7 +350,7 @@ app.post('/api/patients', authenticateToken, async (req, res) => {
 
   try {
     // Check if patient already exists
-    const existing = await Patient.findOne({ where: { name, doctor_id: req.user.doctorId } });
+    const existing = await Patient.findOne({ name, doctor_id: req.user.doctorId });
     if (existing && !existing.deleted) {
       return res.status(409).json({ error: 'Patient with this name already exists' });
     }
@@ -372,12 +385,10 @@ app.post('/api/patients', authenticateToken, async (req, res) => {
 // Get Student Logbook Cases (Derived from Patients table)
 app.get('/api/patients/logs', authenticateToken, async (req, res) => {
   try {
-    const patients = await Patient.findAll({
-      where: {
-        student: { [Op.ne]: 'None' },
-        doctor_id: req.user.doctorId,
-        deleted: false
-      }
+    const patients = await Patient.find({
+      student: { $ne: 'None' },
+      doctor_id: req.user.doctorId,
+      deleted: false
     });
     
     // Attach default notes to matching topics
@@ -412,10 +423,8 @@ app.get('/api/patients/logs', authenticateToken, async (req, res) => {
 app.put('/api/patients/logs/:id', authenticateToken, async (req, res) => {
   try {
     const patientRow = await Patient.findOne({
-      where: {
-        id: req.params.id,
-        doctor_id: req.user.doctorId
-      }
+      _id: req.params.id,
+      doctor_id: req.user.doctorId
     });
     
     if (!patientRow) {
@@ -426,9 +435,9 @@ app.put('/api/patients/logs/:id', authenticateToken, async (req, res) => {
     await patientRow.save();
 
     // Keep protocols table in sync
-    await Protocol.update(
-      { status: 'Approved', updated_at: new Date() },
-      { where: { patient_name: patientRow.name, doctor_id: req.user.doctorId } }
+    await Protocol.updateMany(
+      { patient_name: patientRow.name, doctor_id: req.user.doctorId },
+      { status: 'Approved', updated_at: new Date() }
     );
 
     res.json({ message: 'Patient clinical log approved successfully' });
@@ -443,7 +452,7 @@ app.put('/api/patients/logs/:id', authenticateToken, async (req, res) => {
 app.delete('/api/patients/:id', authenticateToken, async (req, res) => {
   try {
     const doctorId = req.user.doctorId;
-    const patientRow = await Patient.findOne({ where: { id: req.params.id, doctor_id: doctorId } });
+    const patientRow = await Patient.findOne({ _id: req.params.id, doctor_id: doctorId });
     if (!patientRow) {
       return res.status(404).json({ error: 'Patient not found' });
     }
@@ -454,9 +463,9 @@ app.delete('/api/patients/:id', authenticateToken, async (req, res) => {
     await patientRow.save();
 
     // Soft-delete associated appointments for this patient
-    await Appointment.update(
-      { deleted: true, deleted_at: new Date() },
-      { where: { patient: patientRow.name, doctor_id: doctorId, deleted: false } }
+    await Appointment.updateMany(
+      { patient: patientRow.name, doctor_id: doctorId, deleted: false },
+      { deleted: true, deleted_at: new Date() }
     );
 
     res.json({ message: 'Patient and associated appointments moved to Recycle Bin' });
@@ -470,14 +479,14 @@ app.delete('/api/patients/:id', authenticateToken, async (req, res) => {
 app.get('/api/recycle-bin', authenticateToken, async (req, res) => {
   try {
     const doctorId = req.user.doctorId;
-    const appointments = await Appointment.findAll({
-      where: { doctor_id: doctorId, deleted: true },
-      order: [['deleted_at', 'DESC']]
-    });
-    const patients = await Patient.findAll({
-      where: { doctor_id: doctorId, deleted: true },
-      order: [['deleted_at', 'DESC']]
-    });
+    const appointments = await Appointment.find({
+      doctor_id: doctorId,
+      deleted: true
+    }).sort({ deleted_at: -1 });
+    const patients = await Patient.find({
+      doctor_id: doctorId,
+      deleted: true
+    }).sort({ deleted_at: -1 });
     res.json({ appointments, patients });
   } catch (err) {
     console.error('Fetch recycle bin error:', err);
@@ -488,11 +497,11 @@ app.get('/api/recycle-bin', authenticateToken, async (req, res) => {
 // Restore deleted appointment
 app.put('/api/recycle-bin/restore/appointments/:id', authenticateToken, async (req, res) => {
   try {
-    const [affectedCount] = await Appointment.update(
-      { deleted: false, deleted_at: null },
-      { where: { id: req.params.id, doctor_id: req.user.doctorId } }
+    const result = await Appointment.updateOne(
+      { _id: req.params.id, doctor_id: req.user.doctorId },
+      { deleted: false, deleted_at: null }
     );
-    if (affectedCount === 0) {
+    if (result.matchedCount === 0) {
       return res.status(404).json({ error: 'Appointment not found' });
     }
     res.json({ message: 'Appointment restored successfully' });
@@ -506,7 +515,7 @@ app.put('/api/recycle-bin/restore/appointments/:id', authenticateToken, async (r
 app.put('/api/recycle-bin/restore/patients/:id', authenticateToken, async (req, res) => {
   try {
     const doctorId = req.user.doctorId;
-    const patientRow = await Patient.findOne({ where: { id: req.params.id, doctor_id: doctorId } });
+    const patientRow = await Patient.findOne({ _id: req.params.id, doctor_id: doctorId });
     if (!patientRow) {
       return res.status(404).json({ error: 'Patient not found' });
     }
@@ -516,9 +525,9 @@ app.put('/api/recycle-bin/restore/patients/:id', authenticateToken, async (req, 
     await patientRow.save();
 
     // Also restore associated appointments that were soft-deleted
-    await Appointment.update(
-      { deleted: false, deleted_at: null },
-      { where: { patient: patientRow.name, doctor_id: doctorId, deleted: true } }
+    await Appointment.updateMany(
+      { patient: patientRow.name, doctor_id: doctorId, deleted: true },
+      { deleted: false, deleted_at: null }
     );
 
     res.json({ message: 'Patient restored successfully' });
@@ -531,10 +540,11 @@ app.put('/api/recycle-bin/restore/patients/:id', authenticateToken, async (req, 
 // Permanently delete appointment
 app.delete('/api/recycle-bin/permanent/appointments/:id', authenticateToken, async (req, res) => {
   try {
-    const deletedCount = await Appointment.destroy({
-      where: { id: req.params.id, doctor_id: req.user.doctorId }
+    const result = await Appointment.deleteOne({
+      _id: req.params.id,
+      doctor_id: req.user.doctorId
     });
-    if (deletedCount === 0) {
+    if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Appointment not found' });
     }
     res.json({ message: 'Appointment permanently deleted' });
@@ -548,16 +558,16 @@ app.delete('/api/recycle-bin/permanent/appointments/:id', authenticateToken, asy
 app.delete('/api/recycle-bin/permanent/patients/:id', authenticateToken, async (req, res) => {
   try {
     const doctorId = req.user.doctorId;
-    const patientRow = await Patient.findOne({ where: { id: req.params.id, doctor_id: doctorId } });
+    const patientRow = await Patient.findOne({ _id: req.params.id, doctor_id: doctorId });
     if (!patientRow) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
     // Delete associated appointments
-    await Appointment.destroy({ where: { patient: patientRow.name, doctor_id: doctorId } });
+    await Appointment.deleteMany({ patient: patientRow.name, doctor_id: doctorId });
 
     // Delete patient
-    await Patient.destroy({ where: { id: req.params.id, doctor_id: doctorId } });
+    await Patient.deleteOne({ _id: req.params.id, doctor_id: doctorId });
 
     res.json({ message: 'Patient and all associated appointments permanently deleted' });
   } catch (err) {
@@ -570,8 +580,8 @@ app.delete('/api/recycle-bin/permanent/patients/:id', authenticateToken, async (
 app.delete('/api/recycle-bin/empty', authenticateToken, async (req, res) => {
   try {
     const doctorId = req.user.doctorId;
-    await Appointment.destroy({ where: { doctor_id: doctorId, deleted: true } });
-    await Patient.destroy({ where: { doctor_id: doctorId, deleted: true } });
+    await Appointment.deleteMany({ doctor_id: doctorId, deleted: true });
+    await Patient.deleteMany({ doctor_id: doctorId, deleted: true });
     res.json({ message: 'Recycle bin emptied successfully' });
   } catch (err) {
     console.error('Empty recycle bin error:', err);
@@ -586,10 +596,8 @@ app.delete('/api/recycle-bin/empty', authenticateToken, async (req, res) => {
 app.get('/api/protocols/:patientName', authenticateToken, async (req, res) => {
   try {
     const protocol = await Protocol.findOne({
-      where: {
-        patient_name: req.params.patientName,
-        doctor_id: req.user.doctorId
-      }
+      patient_name: req.params.patientName,
+      doctor_id: req.user.doctorId
     });
     
     if (!protocol) {
@@ -613,9 +621,9 @@ app.put('/api/protocols', authenticateToken, async (req, res) => {
   try {
     const newStatus = status || 'Pending';
 
-    const existing = await Protocol.findOne({ where: { patient_name, doctor_id: req.user.doctorId } });
+    const existing = await Protocol.findOne({ patient_name, doctor_id: req.user.doctorId });
     if (existing) {
-      await existing.update({
+      Object.assign(existing, {
         pain_score: pain_score || 4,
         exercises,
         rpe_exertion: rpe_exertion || 4,
@@ -624,6 +632,7 @@ app.put('/api/protocols', authenticateToken, async (req, res) => {
         status: newStatus,
         updated_at: new Date()
       });
+      await existing.save();
     } else {
       await Protocol.create({
         doctor_id: req.user.doctorId,
@@ -639,9 +648,9 @@ app.put('/api/protocols', authenticateToken, async (req, res) => {
     }
 
     // Sync to patient status
-    await Patient.update(
-      { status: newStatus === 'Approved' ? 'Approved' : 'Pending' },
-      { where: { name: patient_name, doctor_id: req.user.doctorId } }
+    await Patient.updateMany(
+      { name: patient_name, doctor_id: req.user.doctorId },
+      { status: newStatus === 'Approved' ? 'Approved' : 'Pending' }
     );
 
     res.json({ message: 'Protocol saved successfully', status: newStatus });
@@ -657,10 +666,9 @@ app.put('/api/protocols', authenticateToken, async (req, res) => {
 // Get EMR Notes
 app.get('/api/notes', authenticateToken, async (req, res) => {
   try {
-    const notes = await EMRNote.findAll({
-      where: { doctor_id: req.user.doctorId },
-      order: [['id', 'DESC']]
-    });
+    const notes = await EMRNote.find({
+      doctor_id: req.user.doctorId
+    }).sort({ _id: -1 });
     res.json(notes);
   } catch (err) {
     console.error('Fetch notes error:', err);
@@ -683,10 +691,9 @@ app.post('/api/notes', authenticateToken, async (req, res) => {
       date: dateFormatted
     });
     
-    const notes = await EMRNote.findAll({
-      where: { doctor_id: req.user.doctorId },
-      order: [['id', 'DESC']]
-    });
+    const notes = await EMRNote.find({
+      doctor_id: req.user.doctorId
+    }).sort({ _id: -1 });
     res.status(201).json(notes);
   } catch (err) {
     console.error('Save note error:', err);
@@ -701,10 +708,8 @@ app.post('/api/notes', authenticateToken, async (req, res) => {
 app.get('/api/wearables/:patientName', authenticateToken, async (req, res) => {
   try {
     const data = await Wearable.findOne({
-      where: {
-        patient_name: req.params.patientName,
-        doctor_id: req.user.doctorId
-      }
+      patient_name: req.params.patientName,
+      doctor_id: req.user.doctorId
     });
     
     if (!data) {
@@ -732,15 +737,16 @@ app.put('/api/wearables', authenticateToken, async (req, res) => {
   }
 
   try {
-    const existing = await Wearable.findOne({ where: { patient_name, doctor_id: req.user.doctorId } });
+    const existing = await Wearable.findOne({ patient_name, doctor_id: req.user.doctorId });
     if (existing) {
-      await existing.update({
+      Object.assign(existing, {
         heart_rate: heart_rate || 72,
         steps: steps || 4200,
         calories: calories || 150,
         sleep_hours: sleep_hours || 7.5,
         updated_at: new Date()
       });
+      await existing.save();
     } else {
       await Wearable.create({
         doctor_id: req.user.doctorId,
@@ -758,6 +764,22 @@ app.put('/api/wearables', authenticateToken, async (req, res) => {
     console.error('Sync wearable metrics error:', err);
     res.status(500).json({ error: 'Failed to sync wearable metrics' });
   }
+});
+
+// Serve static client assets from the dist directory (if built)
+const frontendBuildPath = path.join(__dirname, '../dist');
+app.use(express.static(frontendBuildPath));
+
+// Fallback all non-API GET requests to serve frontend index.html for client-side routing
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(frontendBuildPath, 'index.html'), (err) => {
+    if (err) {
+      res.status(200).send('PhysioSync API is active. Client bundle not found; please build the frontend.');
+    }
+  });
 });
 
 // Start Express Server

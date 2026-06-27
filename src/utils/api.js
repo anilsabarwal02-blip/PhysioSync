@@ -13,7 +13,7 @@ const getApiBaseUrl = () => {
   return `http://${hostname}:5000/api`;
 };
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
 let isBackendOffline = false;
 
 // Health check endpoint simulation or connection status checker

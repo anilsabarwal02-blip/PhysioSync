@@ -1,20 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, Copy, Save, FileText } from 'lucide-react';
-import { api, getBackendStatus } from '../utils/api';
+import { api } from '../utils/api';
 
 const VoiceNotes = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [savedNotes, setSavedNotes] = useState([]);
+  const [savedNotes, setSavedNotes] = useState(() => {
+    const saved = localStorage.getItem('emr_notes_list');
+    return saved ? JSON.parse(saved) : [];
+  });
   const initialTextRef = useRef('');
 
   useEffect(() => {
-    // Load from localStorage immediately so UI renders instantly (0ms delay)
-    const saved = localStorage.getItem('emr_notes_list');
-    if (saved) {
-      setSavedNotes(JSON.parse(saved));
-    }
-
     const fetchNotes = async () => {
       try {
         const data = await api.getNotes();

@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Rotate3D, ZoomIn, ZoomOut, Layers, Info } from 'lucide-react';
 import AnatomyCanvas from './AnatomyCanvas';
+import { api, getBackendStatus } from '../utils/api';
 
 const SYSTEM_INFO = {
   Skeletal: {
@@ -46,10 +47,110 @@ const REGION_INFO = {
   'Cervical Spine': "Focuses on the neck vertebrae (C1-C7), intervertebral discs, brain stem, and upper carotid/jugular blood supply pathways."
 };
 
+const getPatientRom = (patient) => {
+  if (!patient) return { joint: 'Full Body', metrics: [] };
+  const name = patient.name;
+  const condition = (patient.condition || '').toLowerCase();
+  
+  if (name === 'Rahul Verma' || condition.includes('knee') || condition.includes('ligament')) {
+    return {
+      joint: 'Knee Joint',
+      metrics: [
+        { name: 'Knee Flexion', current: 95, target: 135, unit: '°' },
+        { name: 'Extension Deficit', current: 5, target: 0, unit: '°', inverse: true }
+      ]
+    };
+  }
+  if (name === 'Vikram Singh' || condition.includes('shoulder') || condition.includes('rotator')) {
+    return {
+      joint: 'Shoulder Joint',
+      metrics: [
+        { name: 'Shoulder Abduction', current: 120, target: 180, unit: '°' },
+        { name: 'External Rotation', current: 40, target: 90, unit: '°' }
+      ]
+    };
+  }
+  if (name === 'Priya Sharma' || condition.includes('cervical') || condition.includes('neck') || condition.includes('spondylosis')) {
+    return {
+      joint: 'Cervical Spine',
+      metrics: [
+        { name: 'Cervical Rotation', current: 45, target: 80, unit: '°' },
+        { name: 'Cervical Flexion', current: 35, target: 50, unit: '°' }
+      ]
+    };
+  }
+  if (name === 'Neha Gupta' || condition.includes('lumbar') || condition.includes('back') || condition.includes('disc') || condition.includes('sciatica')) {
+    return {
+      joint: 'Lumbar Spine',
+      metrics: [
+        { name: 'Lumbar Flexion', current: 40, target: 90, unit: '°' },
+        { name: 'Lumbar Extension', current: 15, target: 30, unit: '°' }
+      ]
+    };
+  }
+  return {
+    joint: 'Full Body',
+    metrics: [
+      { name: 'General Mobility', current: 75, target: 100, unit: '%' }
+    ]
+  };
+};
+
 const AnatomyViewer = () => {
   const [selectedSystem, setSelectedSystem] = useState('Skeletal');
   const [selectedPart, setSelectedPart] = useState('Full Body');
   const canvasRef = useRef(null);
+
+  // Patient states
+  const [patients, setPatients] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
+  // Fetch patients from backend
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const list = await api.getPatients();
+        setPatients(list);
+        if (list.length > 0) {
+          setSelectedPatient(list[0]);
+        }
+      } catch (err) {
+        console.warn("[API] Failed to fetch patients in AnatomyViewer:", err.message);
+        const localList = JSON.parse(localStorage.getItem('patients_list') || '[]');
+        setPatients(localList);
+        if (localList.length > 0) {
+          setSelectedPatient(localList[0]);
+        }
+      }
+    };
+    fetchPatients();
+  }, []);
+
+  // Update focus joint based on patient condition
+  useEffect(() => {
+    if (!selectedPatient) return;
+    const getFocusRegion = (condition) => {
+      if (!condition) return { region: 'Full Body', system: 'Skeletal' };
+      const cond = condition.toLowerCase();
+      if (cond.includes('knee') || cond.includes('ligament')) {
+        return { region: 'Knee Joint', system: 'Skeletal' };
+      }
+      if (cond.includes('shoulder') || cond.includes('rotator')) {
+        return { region: 'Shoulder Joint', system: 'Muscular' };
+      }
+      if (cond.includes('cervical') || cond.includes('neck') || cond.includes('spondylosis')) {
+        return { region: 'Cervical Spine', system: 'Nervous' };
+      }
+      if (cond.includes('lumbar') || cond.includes('back') || cond.includes('disc') || cond.includes('sciatica')) {
+        return { region: 'Lumbar Spine', system: 'Skeletal' };
+      }
+      return { region: 'Full Body', system: 'Skeletal' };
+    };
+
+    const { region, system } = getFocusRegion(selectedPatient.condition);
+    setSelectedPart(region);
+    setSelectedSystem(system);
+  }, [selectedPatient]);
 
   return (
     <div className="main-content">
@@ -70,6 +171,69 @@ const AnatomyViewer = () => {
       >
         {/* Left Column: Controls & Information */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+          {/* Patient Selector */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <h3 style={{ marginBottom: '12px' }}>Clinical Patient ROM Focus</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <select 
+                className="search-bar" 
+                style={{ width: '100%', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-main)', padding: '10px 14px' }}
+                value={selectedPatient ? selectedPatient.id || selectedPatient._id : ''}
+                onChange={(e) => {
+                  const p = patients.find(pat => (pat.id || pat._id) === e.target.value);
+                  if (p) setSelectedPatient(p);
+                }}
+              >
+                {patients.map(p => (
+                  <option key={p.id || p._id} value={p.id || p._id}>{p.name} ({p.condition})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Patient ROM Details Card */}
+          {selectedPatient && (
+            <div className="glass-panel" style={{ padding: '24px' }}>
+              <h3 style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Range of Motion (ROM)</span>
+                <span style={{ fontSize: '0.75rem', background: 'rgba(13, 148, 136, 0.15)', color: 'var(--primary)', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold' }}>
+                  {getPatientRom(selectedPatient).joint}
+                </span>
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {getPatientRom(selectedPatient).metrics.map((metric, idx) => {
+                  const progress = metric.inverse 
+                    ? Math.max(0, 100 - (metric.current * 10)) 
+                    : (metric.current / metric.target) * 100;
+                  const isSevere = progress < 70;
+                  const progressColor = isSevere ? 'var(--danger)' : 'var(--primary)';
+                  
+                  return (
+                    <div key={idx}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.85rem' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{metric.name}</span>
+                        <span style={{ fontWeight: 'bold', color: isSevere ? 'var(--danger)' : 'var(--text-main)' }}>
+                          {metric.current}{metric.unit} / {metric.target}{metric.unit}
+                        </span>
+                      </div>
+                      <div style={{ width: '100%', height: '8px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div 
+                          style={{ 
+                            width: `${Math.min(100, progress)}%`, 
+                            height: '100%', 
+                            background: progressColor, 
+                            borderRadius: '4px',
+                            transition: 'width 0.8s ease-in-out'
+                          }} 
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Systems selector */}
           <div className="glass-panel" style={{ padding: '24px' }}>

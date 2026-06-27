@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { MessageSquare, Trash2 } from 'lucide-react';
 import Auth from './components/Auth';
@@ -12,6 +12,7 @@ import TreatmentPlanner from './components/TreatmentPlanner';
 import AnatomyViewer from './components/AnatomyViewer';
 import WearableSync from './components/WearableSync';
 import TeleRehab from './components/TeleRehab';
+import Posture from './components/Posture';
 import RecycleBin from './components/RecycleBin';
 import './App.css';
 import './index.css';
@@ -26,7 +27,7 @@ function App() {
     setIsAIOpen(!isAIOpen);
   };
 
-  const handleLogin = (user) => {
+  const handleLogin = () => {
     setIsAuthenticated(true);
   };
 
@@ -56,6 +57,7 @@ function App() {
           <Route path="/anatomy-viewer" element={<AnatomyViewer />} />
           <Route path="/wearable-sync" element={<WearableSync />} />
           <Route path="/tele-rehab" element={<TeleRehab />} />
+          <Route path="/posture" element={<Posture />} />
           <Route path="/recycle-bin" element={<RecycleBin />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

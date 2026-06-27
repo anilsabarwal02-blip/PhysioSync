@@ -1,15 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, ActivitySquare, TrendingUp, Bell, Mic, Search, Clock, X, BrainCircuit, Trash2, Plus } from 'lucide-react';
+import { Users, ActivitySquare, Bell, Mic, Search, Clock, X, BrainCircuit, Trash2, Plus, CheckCircle } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchHistory, setSearchHistory] = useState([]);
+  const [searchHistory, setSearchHistory] = useState(() => {
+    return JSON.parse(localStorage.getItem('searchHistory') || '[]');
+  });
   const [showHistory, setShowHistory] = useState(false);
-  const [patients, setPatients] = useState([]);
-  const [doctorName, setDoctorName] = useState('Doctor');
+  const [patients, setPatients] = useState(() => {
+    const localPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
+    return localPatientsList.map(p => {
+      const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
+      const isApproved = p.status === 'Approved' || localStorage.getItem(`patient_status_${p.name}`) === 'Approved';
+      return {
+        id: p.id,
+        name: p.name,
+        desc,
+        status: isApproved ? 'Approved' : p.status,
+        statusClass: isApproved ? 'status-active' : 'status-pending',
+        style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
+      };
+    });
+  });
+  const [doctorName] = useState(() => {
+    const currentUserStr = localStorage.getItem('currentUser');
+    if (currentUserStr) {
+      const user = JSON.parse(currentUserStr);
+      return user.name || 'Dr. Sharma';
+    }
+    return 'Dr. Sharma';
+  });
   const [patientToDelete, setPatientToDelete] = useState(null); // { id, name }
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -21,12 +44,37 @@ const Dashboard = () => {
       { id: 2, text: "System check: Database connection is healthy.", time: "2 hours ago", read: true }
     ];
   });
-  const [stats, setStats] = useState({
-    totalPatients: 0,
-    pendingLogs: 0,
-    todaySessions: 0,
-    recoveryRate: 0,
-    newPatientsThisMonth: 0
+  const [stats, setStats] = useState(() => {
+    const localPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
+    const localAppointments = JSON.parse(localStorage.getItem('appointments_list') || '[]');
+    const total = localPatientsList.length;
+    const pending = localPatientsList.filter(p => p.student && p.student !== 'None' && p.status === 'Pending').length;
+
+    // Filter today's appointments by date string
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    const today = localAppointments.filter(app => app.date === todayStr).length;
+
+    const approved = localPatientsList.filter(p => p.status === 'Approved').length;
+    const recovery = total > 0 ? Math.round((approved / total) * 100) : 0;
+    
+    // Filter patients registered in last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const newPatients = localPatientsList.filter(p => {
+      const createdTime = p.created_at || p.createdAt ? new Date(p.created_at || p.createdAt) : null;
+      return !createdTime || createdTime >= thirtyDaysAgo;
+    }).length;
+
+    return {
+      totalPatients: total,
+      pendingLogs: pending,
+      todaySessions: today,
+      recoveryRate: recovery,
+      newPatientsThisMonth: newPatients
+    };
   });
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -34,6 +82,8 @@ const Dashboard = () => {
   const [newAge, setNewAge] = useState('');
   const [newGender, setNewGender] = useState('Male');
   const [newCondition, setNewCondition] = useState('');
+  const [activeListTab, setActiveListTab] = useState('patients'); // 'patients' | 'logs'
+  const [studentLogs, setStudentLogs] = useState([]);
 
   const handleAddPatient = async () => {
     if (!newName.trim() || !newCondition.trim()) {
@@ -108,11 +158,18 @@ const Dashboard = () => {
           statusClass: isApproved ? 'status-active' : 'status-pending',
           style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
         };
-        const finalApps = prev.map(p => p.id === tempId ? finalMapped : p);
+        
+        const exists = prev.some(p => p.id === tempId || p.id === finalMapped.id);
+        const finalApps = exists 
+          ? prev.map(p => (p.id === tempId ? finalMapped : p))
+          : [finalMapped, ...prev];
         
         // Refresh local storage patients_list
         const currentLocal = JSON.parse(localStorage.getItem('patients_list') || '[]');
-        const updatedLocal = currentLocal.map(p => p.id === tempId ? savedPatient : p);
+        const localExists = currentLocal.some(p => p.id === tempId || (p._id || p.id) === savedPatient.id);
+        const updatedLocal = localExists
+          ? currentLocal.map(p => (p.id === tempId ? savedPatient : p))
+          : [savedPatient, ...currentLocal];
         localStorage.setItem('patients_list', JSON.stringify(updatedLocal));
 
         return finalApps;
@@ -122,7 +179,9 @@ const Dashboard = () => {
       try {
         const freshStats = await api.getDashboardStats();
         setStats(freshStats);
-      } catch {}
+      } catch (err) {
+        console.debug("Failed to fetch dashboard stats", err);
+      }
 
     } catch (err) {
       console.warn("[API] Background patient sync failed. Stored locally. Error:", err.message);
@@ -165,64 +224,6 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-    setSearchHistory(history);
-
-    const currentUserStr = localStorage.getItem('currentUser');
-    if (currentUserStr) {
-      const user = JSON.parse(currentUserStr);
-      setDoctorName(user.name || 'Dr. Sharma');
-    } else {
-      setDoctorName('Dr. Sharma');
-    }
-
-    // Load from localStorage immediately so UI renders instantly (0ms delay)
-    const localPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
-    const localAppointments = JSON.parse(localStorage.getItem('appointments_list') || '[]');
-    
-    const initialMapped = localPatientsList.map(p => {
-      const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
-      const isApproved = p.status === 'Approved' || localStorage.getItem(`patient_status_${p.name}`) === 'Approved';
-      return {
-        id: p.id,
-        name: p.name,
-        desc,
-        status: isApproved ? 'Approved' : p.status,
-        statusClass: isApproved ? 'status-active' : 'status-pending',
-        style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
-      };
-    });
-    setPatients(initialMapped);
-
-    const total = localPatientsList.length;
-    const pending = localPatientsList.filter(p => p.student && p.student !== 'None' && p.status === 'Pending').length;
-
-    // Filter today's appointments by date string
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const todayStr = `${year}-${month}-${day}`;
-    const today = localAppointments.filter(app => app.date === todayStr).length;
-
-    const approved = localPatientsList.filter(p => p.status === 'Approved').length;
-    const recovery = total > 0 ? Math.round((approved / total) * 100) : 0;
-    
-    // Filter patients registered in last 30 days
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const newPatients = localPatientsList.filter(p => {
-      const createdTime = p.created_at || p.createdAt ? new Date(p.created_at || p.createdAt) : null;
-      return !createdTime || createdTime >= thirtyDaysAgo;
-    }).length;
-
-    setStats({
-      totalPatients: total,
-      pendingLogs: pending,
-      todaySessions: today,
-      recoveryRate: recovery,
-      newPatientsThisMonth: newPatients
-    });
-
     const fetchPatients = async () => {
       try {
         const backendPatients = await api.getPatients();
@@ -254,8 +255,18 @@ const Dashboard = () => {
       }
     };
 
+    const fetchLogs = async () => {
+      try {
+        const data = await api.getLogs();
+        setStudentLogs(data);
+      } catch (err) {
+        console.warn("[API] Failed to fetch student logs from backend:", err.message);
+      }
+    };
+
     fetchPatients();
     fetchStats();
+    fetchLogs();
   }, []);
 
   const handleDeletePatient = (id, name, e) => {
@@ -371,6 +382,100 @@ const Dashboard = () => {
         }
       } else {
         alert(`Failed to delete patient: ${err.message}`);
+      }
+    }
+  };
+
+  const handleApproveStudentCase = async (id, patientName) => {
+    try {
+      await api.approveLog(id);
+      
+      // Add notification
+      const newNotif = {
+        id: Date.now(),
+        text: `Clinical case log for ${patientName} has been approved.`,
+        time: "Just now",
+        read: false
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+
+      // Refresh list, patients, and stats
+      const logsData = await api.getLogs();
+      setStudentLogs(logsData);
+
+      const backendPatients = await api.getPatients();
+      const mapped = backendPatients.map(p => {
+        const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
+        const isApproved = p.status === 'Approved';
+        return {
+          id: p._id || p.id,
+          name: p.name,
+          desc,
+          status: p.status,
+          statusClass: isApproved ? 'status-active' : 'status-pending',
+          style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
+        };
+      });
+      setPatients(mapped);
+
+      const statsData = await api.getDashboardStats();
+      setStats(statsData);
+      alert(`Clinical case log for ${patientName} approved successfully.`);
+    } catch (err) {
+      if (!getBackendStatus()) {
+        // Offline fallback
+        const localPatients = JSON.parse(localStorage.getItem('patients_list') || '[]');
+        const updatedPatients = localPatients.map(p => {
+          if (p.id === id || p._id === id) {
+            p.status = 'Approved';
+            localStorage.setItem(`patient_status_${p.name}`, 'Approved');
+          }
+          return p;
+        });
+        localStorage.setItem('patients_list', JSON.stringify(updatedPatients));
+        
+        const mapped = updatedPatients.map(p => {
+          const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
+          const isApproved = p.status === 'Approved';
+          return {
+            id: p.id || p._id,
+            name: p.name,
+            desc,
+            status: p.status,
+            statusClass: isApproved ? 'status-active' : 'status-pending',
+            style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
+          };
+        });
+        setPatients(mapped);
+
+        setStudentLogs(prev => prev.map(log => {
+          if (log.id === id) {
+            log.status = 'Approved';
+          }
+          return log;
+        }));
+
+        const total = updatedPatients.length;
+        const pending = updatedPatients.filter(p => p.student && p.student !== 'None' && p.status === 'Pending').length;
+        const approved = updatedPatients.filter(p => p.status === 'Approved').length;
+        const recovery = total > 0 ? Math.round((approved / total) * 100) : 0;
+        
+        setStats(prev => ({
+          ...prev,
+          pendingLogs: pending,
+          recoveryRate: recovery
+        }));
+
+        const newNotif = {
+          id: Date.now(),
+          text: `Clinical case log for ${patientName} approved (Offline).`,
+          time: "Just now",
+          read: false
+        };
+        setNotifications(prev => [newNotif, ...prev]);
+        alert(`Clinical case log for ${patientName} approved successfully (offline fallback).`);
+      } else {
+        alert(`Failed to approve case log: ${err.message}`);
       }
     }
   };
@@ -597,58 +702,130 @@ const Dashboard = () => {
             {stats.todaySessions > 0 ? 'Next session active' : 'No sessions scheduled'}
           </p>
         </div>
-        
-        <div className="glass-panel metric-card" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
-          <div className="metric-header">
-            <span>Recovery Rate</span>
-            <TrendingUp size={20} color="var(--accent)" />
-          </div>
-          <div className="metric-value">{stats.recoveryRate}%</div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Avg. across clinic</p>
-        </div>
       </div>
 
       <div className="dashboard-content-grid">
-        <div className="glass-panel recent-patients-list">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3>Recent Patients</h3>
-            <button 
-              className="glass-button" 
-              onClick={() => setShowAddModal(true)} 
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.85rem', background: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)' }}
-            >
-              <Plus size={14} /> Add Patient
-            </button>
+        <div className="glass-panel recent-patients-list" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <h3 
+                onClick={() => setActiveListTab('patients')} 
+                style={{ 
+                  margin: 0, 
+                  cursor: 'pointer', 
+                  color: activeListTab === 'patients' ? 'var(--primary)' : 'var(--text-muted)',
+                  borderBottom: activeListTab === 'patients' ? '2px solid var(--primary)' : 'none',
+                  paddingBottom: '4px',
+                  fontSize: '1.1rem',
+                  fontWeight: '600'
+                }}
+              >
+                Recent Patients
+              </h3>
+              <h3 
+                onClick={() => setActiveListTab('logs')} 
+                style={{ 
+                  margin: 0, 
+                  cursor: 'pointer', 
+                  color: activeListTab === 'logs' ? 'var(--primary)' : 'var(--text-muted)',
+                  borderBottom: activeListTab === 'logs' ? '2px solid var(--primary)' : 'none',
+                  paddingBottom: '4px',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                Student Logs 
+                {studentLogs.filter(l => l.status === 'Pending').length > 0 && (
+                  <span style={{ fontSize: '0.75rem', background: 'var(--danger)', color: 'white', padding: '2px 6px', borderRadius: '10px' }}>
+                    {studentLogs.filter(l => l.status === 'Pending').length}
+                  </span>
+                )}
+              </h3>
+            </div>
+            
+            {activeListTab === 'patients' && (
+              <button 
+                className="glass-button" 
+                onClick={() => setShowAddModal(true)} 
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.85rem', background: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)' }}
+              >
+                <Plus size={14} /> Add Patient
+              </button>
+            )}
           </div>
           
-          {patients.length > 0 ? (
-            patients.map((p, index) => (
-              <div key={index} className="list-item">
-                <div className="patient-info">
-                  <h4>{p.name}</h4>
-                  <p>{p.desc}</p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className={`status-badge ${p.statusClass}`} style={p.style || undefined}>
-                    {p.status}
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {activeListTab === 'patients' ? (
+              patients.length > 0 ? (
+                patients.map((p, index) => (
+                  <div key={index} className="list-item">
+                    <div className="patient-info">
+                      <h4>{p.name}</h4>
+                      <p>{p.desc}</p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div className={`status-badge ${p.statusClass}`} style={p.style || undefined}>
+                        {p.status}
+                      </div>
+                      <button 
+                        onClick={(e) => handleDeletePatient(p.id, p.name, e)} 
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--danger)', opacity: 0.7, padding: '4px', borderRadius: '4px', transition: 'all 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+                        title="Move to Recycle Bin"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <button 
-                    onClick={(e) => handleDeletePatient(p.id, p.name, e)} 
-                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--danger)', opacity: 0.7, padding: '4px', borderRadius: '4px', transition: 'all 0.2s' }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
-                    title="Move to Recycle Bin"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                ))
+              ) : (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <p>No patients registered yet. Schedule an appointment to register a patient in real-time.</p>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <p>No patients registered yet. Schedule an appointment to register a patient in real-time.</p>
-            </div>
-          )}
+              )
+            ) : (
+              studentLogs.length > 0 ? (
+                studentLogs.map((log) => (
+                  <div key={log.id} style={{ background: 'var(--glass-bg)', padding: '16px', borderRadius: '12px', borderLeft: log.status === 'Pending' ? '4px solid var(--secondary)' : '4px solid var(--primary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {log.topic}
+                          <span style={{ fontSize: '0.75rem', background: log.status === 'Approved' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 132, 199, 0.15)', color: log.status === 'Approved' ? '#0d9488' : 'var(--secondary)', padding: '2px 8px', borderRadius: '8px', fontWeight: 'bold' }}>
+                            {log.status}
+                          </span>
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Patient: <strong>{log.patient}</strong> • Student: <strong>{log.student}</strong>
+                        </span>
+                      </div>
+                      
+                      {log.status === 'Pending' && (
+                        <button 
+                          onClick={() => handleApproveStudentCase(log.id, log.patient)}
+                          className="glass-button"
+                          style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'var(--primary)', color: 'white', display: 'flex', gap: '4px', alignItems: 'center' }}
+                        >
+                          <CheckCircle size={14} /> Approve
+                        </button>
+                      )}
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', fontStyle: 'italic', background: 'rgba(255,255,255,0.4)', padding: '8px 12px', borderRadius: '8px' }}>
+                      "{log.notes}"
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <p>No student logs submitted for review.</p>
+                </div>
+              )
+            )}
+          </div>
         </div>
         
         <div className="glass-panel" style={{ padding: '24px' }}>

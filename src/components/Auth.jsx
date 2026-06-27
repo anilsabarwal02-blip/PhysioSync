@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Activity, Lock, User } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 

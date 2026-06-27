@@ -1,5 +1,49 @@
-import React, { useEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react';
+import { useEffect, useRef, useImperativeHandle, forwardRef, useState } from 'react';
 import * as THREE from 'three';
+
+// Colors
+const COLORS = {
+  bone: 0xf1f5f9, // Matte Slate 100 for bones
+  boneHighlight: 0xe2e8f0,
+  muscle: 0xbe123c, // Deep Crimson Red
+  nerve: 0xfacc15, // Glowing Yellow
+  nerveEmissive: 0xeab308,
+  ligament: 0xe2e8f0, // White tendons
+  disc: 0x38bdf8, // Neon blue
+  organLung: 0xfca5a5, // Light pink
+  organHeart: 0x9f1239, // Deep red
+  organLiver: 0x881337, // Dark red-brown
+  organStomach: 0xe11d48, // Rose pink
+  organIntestines: 0xfda4af, // Light coral pink
+  artery: 0xd60000, // Bright Red
+  vein: 0x0041d6, // Deep Blue
+  eyeWhite: 0xffffff,
+  eyePupil: 0x0f172a,
+};
+
+// Views mapping for each focused region
+const REGION_VIEWS = {
+  'Shoulder Joint': {
+    cam: new THREE.Vector3(0.5, 0.9, 1.8), // Zoomed in on right shoulder
+    look: new THREE.Vector3(0.4, 0.9, 0)
+  },
+  'Lumbar Spine': {
+    cam: new THREE.Vector3(0.0, -0.15, 1.8), // Zoomed in on lumbar spine (lower back)
+    look: new THREE.Vector3(0.0, -0.15, 0)
+  },
+  'Knee Joint': {
+    cam: new THREE.Vector3(0.25, -1.1, 1.6), // Zoomed in on right knee
+    look: new THREE.Vector3(0.2, -1.1, 0)
+  },
+  'Cervical Spine': {
+    cam: new THREE.Vector3(0.0, 1.2, 1.5), // Zoomed in on neck
+    look: new THREE.Vector3(0.0, 1.2, 0)
+  },
+  'Full Body': {
+    cam: new THREE.Vector3(0, 0.0, 4.65), // Show whole figure
+    look: new THREE.Vector3(0, 0.0, 0)
+  }
+};
 
 const AnatomyCanvas = forwardRef(({ activeRegion, activeSystem }, ref) => {
   const mountRef = useRef(null);
@@ -21,50 +65,6 @@ const AnatomyCanvas = forwardRef(({ activeRegion, activeSystem }, ref) => {
   // Dynamic zoom scale controlled by zoom buttons
   const zoomScaleRef = useRef(1.0);
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
-
-  // Colors
-  const COLORS = {
-    bone: 0xf1f5f9, // Matte Slate 100 for bones
-    boneHighlight: 0xe2e8f0,
-    muscle: 0xbe123c, // Deep Crimson Red
-    nerve: 0xfacc15, // Glowing Yellow
-    nerveEmissive: 0xeab308,
-    ligament: 0xe2e8f0, // White tendons
-    disc: 0x38bdf8, // Neon blue
-    organLung: 0xfca5a5, // Light pink
-    organHeart: 0x9f1239, // Deep red
-    organLiver: 0x881337, // Dark red-brown
-    organStomach: 0xe11d48, // Rose pink
-    organIntestines: 0xfda4af, // Light coral pink
-    artery: 0xd60000, // Bright Red
-    vein: 0x0041d6, // Deep Blue
-    eyeWhite: 0xffffff,
-    eyePupil: 0x0f172a,
-  };
-
-  // Views mapping for each focused region
-  const REGION_VIEWS = {
-    'Shoulder Joint': {
-      cam: new THREE.Vector3(0.5, 0.9, 1.8), // Zoomed in on right shoulder
-      look: new THREE.Vector3(0.4, 0.9, 0)
-    },
-    'Lumbar Spine': {
-      cam: new THREE.Vector3(0.0, -0.15, 1.8), // Zoomed in on lumbar spine (lower back)
-      look: new THREE.Vector3(0.0, -0.15, 0)
-    },
-    'Knee Joint': {
-      cam: new THREE.Vector3(0.25, -1.1, 1.6), // Zoomed in on right knee
-      look: new THREE.Vector3(0.2, -1.1, 0)
-    },
-    'Cervical Spine': {
-      cam: new THREE.Vector3(0.0, 1.2, 1.5), // Zoomed in on neck
-      look: new THREE.Vector3(0.0, 1.2, 0)
-    },
-    'Full Body': {
-      cam: new THREE.Vector3(0, 0.0, 4.65), // Show whole figure
-      look: new THREE.Vector3(0, 0.0, 0)
-    }
-  };
 
   // Expose controls to the parent component
   useImperativeHandle(ref, () => ({

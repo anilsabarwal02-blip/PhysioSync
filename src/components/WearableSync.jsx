@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Activity, Watch, Heart, Zap, SignalHigh, RefreshCw, 
-  Play, Square, Save, RotateCcw, Bluetooth, HardDrive, 
+  Play, Square, Bluetooth, HardDrive, 
   Trash2, ShieldCheck, BatteryCharging, AlertCircle 
 } from 'lucide-react';
+import { api, getBackendStatus } from '../utils/api';
 
 const WearableSync = () => {
-  const navigate = useNavigate();
 
   // Call states
   const [isSyncing, setIsSyncing] = useState(false);
@@ -35,6 +34,13 @@ const WearableSync = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Backend connection states
+  const [patients, setPatients] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [steps, setSteps] = useState(4200);
+  const [calories, setCalories] = useState(150);
+  const [sleepHours, setSleepHours] = useState(7.5);
+
   // Refs for canvas scrolling buffers
   const ecgCanvasRef = useRef(null);
   const emgCanvasRef = useRef(null);
@@ -50,6 +56,45 @@ const WearableSync = () => {
   useEffect(() => {
     localStorage.setItem('telemetry_logs', JSON.stringify(telemetryLogs));
   }, [telemetryLogs]);
+
+  // Fetch patients on mount
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const list = await api.getPatients();
+        setPatients(list);
+        if (list.length > 0) {
+          setSelectedPatient(list[0]);
+        }
+      } catch (err) {
+        console.warn("[API] Failed to fetch patients in WearableSync:", err.message);
+        // local fallback
+        const localList = JSON.parse(localStorage.getItem('patients_list') || '[]');
+        setPatients(localList);
+        if (localList.length > 0) {
+          setSelectedPatient(localList[0]);
+        }
+      }
+    };
+    fetchPatients();
+  }, []);
+
+  // Fetch selected patient's wearable data
+  useEffect(() => {
+    if (!selectedPatient) return;
+    const fetchWearableData = async () => {
+      try {
+        const data = await api.getWearables(selectedPatient.name);
+        setHr(data.heart_rate || 72);
+        setSteps(data.steps || 4200);
+        setCalories(data.calories || 150);
+        setSleepHours(data.sleep_hours || 7.5);
+      } catch (err) {
+        console.warn("[API] Failed to fetch wearables for", selectedPatient.name, err.message);
+      }
+    };
+    fetchWearableData();
+  }, [selectedPatient]);
 
   // Session duration timer
   useEffect(() => {
@@ -283,12 +328,29 @@ const WearableSync = () => {
   };
 
   // Save active telemetry log
-  const handleSaveTelemetry = () => {
+  const handleSaveTelemetry = async () => {
     if (reps === 0) {
       alert("No movement reps detected yet. Try performing an exercise first.");
       return;
     }
     const finalAvgHr = hrCount > 0 ? Math.round(hrSum / hrCount) : hr;
+    
+    // Sync telemetry to database
+    if (selectedPatient) {
+      try {
+        await api.syncWearables({
+          patient_name: selectedPatient.name,
+          heart_rate: finalAvgHr,
+          steps,
+          calories,
+          sleep_hours: sleepHours
+        });
+        console.log(`[API] Synced wearables to cloud for ${selectedPatient.name}.`);
+      } catch (err) {
+        console.warn(`[API] Failed to sync wearables:`, err.message);
+      }
+    }
+
     const newLog = {
       id: Date.now(),
       exercise,
@@ -308,7 +370,7 @@ const WearableSync = () => {
     maxEmgRef.current = 0;
     setHrSum(0);
     setHrCount(0);
-    alert("Telemetry session data saved successfully.");
+    alert("Telemetry session data saved and synced to database successfully.");
   };
 
   // Clear a saved log
@@ -325,7 +387,7 @@ const WearableSync = () => {
   return (
     <div className="main-content">
       {/* Header */}
-      <header className="dashboard-header">
+      <header className="dashboard-header" style={{ marginBottom: '16px' }}>
         <div>
           <h1>IoT Wearable Sync ⌚</h1>
           <p>Live telemetry from Apple Watch & EMG sensors during clinic exercises.</p>
@@ -348,6 +410,82 @@ const WearableSync = () => {
           </button>
         )}
       </header>
+
+      {/* Patient Selector & Daily Stats Card */}
+      <div className="glass-panel" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <label style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-main)' }}>Select Patient:</label>
+          <select 
+            className="search-bar" 
+            style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '0.9rem' }}
+            value={selectedPatient ? selectedPatient.id || selectedPatient._id : ''}
+            onChange={(e) => {
+              const p = patients.find(pat => (pat.id || pat._id) === e.target.value);
+              if (p) setSelectedPatient(p);
+            }}
+          >
+            {patients.map(p => (
+              <option key={p.id || p._id} value={p.id || p._id}>{p.name} ({p.condition})</option>
+            ))}
+          </select>
+        </div>
+
+        {selectedPatient && (
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Daily Steps:</span>
+              <input 
+                type="number" 
+                className="search-bar" 
+                value={steps} 
+                onChange={(e) => setSteps(Number(e.target.value))}
+                style={{ width: '80px', padding: '6px 8px', borderRadius: '6px', fontSize: '0.85rem' }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Calories:</span>
+              <input 
+                type="number" 
+                className="search-bar" 
+                value={calories} 
+                onChange={(e) => setCalories(Number(e.target.value))}
+                style={{ width: '70px', padding: '6px 8px', borderRadius: '6px', fontSize: '0.85rem' }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Sleep Hours:</span>
+              <input 
+                type="number" 
+                step="0.1"
+                className="search-bar" 
+                value={sleepHours} 
+                onChange={(e) => setSleepHours(Number(e.target.value))}
+                style={{ width: '60px', padding: '6px 8px', borderRadius: '6px', fontSize: '0.85rem' }}
+              />
+            </div>
+            <button 
+              className="glass-button" 
+              onClick={async () => {
+                try {
+                  await api.syncWearables({
+                    patient_name: selectedPatient.name,
+                    heart_rate: hr,
+                    steps,
+                    calories,
+                    sleep_hours: sleepHours
+                  });
+                  alert(`Wearable metrics for ${selectedPatient.name} synced to database.`);
+                } catch (err) {
+                  alert(`Failed to sync metrics: ${err.message}`);
+                }
+              }}
+              style={{ padding: '8px 16px', fontSize: '0.85rem', background: 'var(--primary)', border: 'none' }}
+            >
+              Sync Metrics
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* BLE PAIRING MODAL */}
       {isPairing && (
