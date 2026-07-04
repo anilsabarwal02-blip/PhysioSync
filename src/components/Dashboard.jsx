@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Users, ActivitySquare, Bell, Mic, Search, Clock, X, BrainCircuit, Trash2, Plus, CheckCircle } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
+let idCounter = Date.now();
+const getUniqueId = () => {
+  idCounter += 1;
+  return idCounter;
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -392,7 +398,7 @@ const Dashboard = () => {
       
       // Add notification
       const newNotif = {
-        id: Date.now(),
+        id: getUniqueId(),
         text: `Clinical case log for ${patientName} has been approved.`,
         time: "Just now",
         read: false
@@ -467,7 +473,7 @@ const Dashboard = () => {
         }));
 
         const newNotif = {
-          id: Date.now(),
+          id: getUniqueId(),
           text: `Clinical case log for ${patientName} approved (Offline).`,
           time: "Just now",
           read: false

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Rotate3D, ZoomIn, ZoomOut, Layers, Info } from 'lucide-react';
 import AnatomyCanvas from './AnatomyCanvas';
-import { api, getBackendStatus } from '../utils/api';
+import { api } from '../utils/api';
 
 const SYSTEM_INFO = {
   Skeletal: {
@@ -148,8 +148,11 @@ const AnatomyViewer = () => {
     };
 
     const { region, system } = getFocusRegion(selectedPatient.condition);
-    setSelectedPart(region);
-    setSelectedSystem(system);
+    const timer = setTimeout(() => {
+      setSelectedPart(region);
+      setSelectedSystem(system);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [selectedPatient]);
 
   return (

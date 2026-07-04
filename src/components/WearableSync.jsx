@@ -4,7 +4,13 @@ import {
   Play, Square, Bluetooth, HardDrive, 
   Trash2, ShieldCheck, BatteryCharging, AlertCircle 
 } from 'lucide-react';
-import { api, getBackendStatus } from '../utils/api';
+import { api } from '../utils/api';
+
+let idCounter = Date.now();
+const getUniqueId = () => {
+  idCounter += 1;
+  return idCounter;
+};
 
 const WearableSync = () => {
 
@@ -352,7 +358,7 @@ const WearableSync = () => {
     }
 
     const newLog = {
-      id: Date.now(),
+      id: getUniqueId(),
       exercise,
       reps,
       duration: formatDuration(sessionTime),

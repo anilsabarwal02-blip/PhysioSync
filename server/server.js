@@ -62,9 +62,13 @@ const authenticateToken = async (req, res, next) => {
   
   try {
     const existing = await Doctor.findOne({ doctor_id: defaultDoctor.doctorId });
+    const hashedPassword = await bcrypt.hash('password123', 10);
     if (!existing) {
-      await Doctor.create({ doctor_id: defaultDoctor.doctorId, name: defaultDoctor.name, password: '' });
+      await Doctor.create({ doctor_id: defaultDoctor.doctorId, name: defaultDoctor.name, password: hashedPassword });
       await seedDoctorData(defaultDoctor.doctorId);
+    } else if (existing.password === '' || existing.password === null) {
+      existing.password = hashedPassword;
+      await existing.save();
     }
   } catch (err) {
     console.error('Error seeding default doctor in MongoDB:', err);
@@ -89,6 +93,9 @@ const authenticateToken = async (req, res, next) => {
 
 // Register Doctor
 app.post('/api/auth/register', async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ error: 'Database is not connected. Please configure MONGODB_URI on your live server.' });
+  }
   const { name, password } = req.body;
   if (!name || !password) {
     return res.status(400).json({ error: 'Name and password are required' });
@@ -119,6 +126,9 @@ app.post('/api/auth/register', async (req, res) => {
 
 // Login Doctor
 app.post('/api/auth/login', async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ error: 'Database is not connected. Please configure MONGODB_URI on your live server.' });
+  }
   const { doctorId, password } = req.body;
   if (!doctorId || !password) {
     return res.status(400).json({ error: 'Doctor ID and password are required' });

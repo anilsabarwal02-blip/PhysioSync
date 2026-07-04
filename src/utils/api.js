@@ -1,4 +1,11 @@
 const getApiBaseUrl = () => {
+  // If running natively on Android/iOS via Capacitor, 'localhost' refers to the mobile device itself,
+  // which doesn't have the Express backend. We default to the Android Emulator host loopback IP.
+  // Note: For physical devices, you must use a .env file with VITE_API_URL=http://<YOUR_WIFI_IP>:5000/api
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    return 'http://10.0.2.2:5000/api';
+  }
+
   const { hostname, port } = window.location;
 
   // If we are running on Vercel or a deployed production domain
@@ -9,7 +16,7 @@ const getApiBaseUrl = () => {
     return '/api';
   }
 
-  // Otherwise (local development or Capacitor development), connect to port 5000 of the hostname
+  // Otherwise (local development or web), connect to port 5000 of the hostname
   return `http://${hostname}:5000/api`;
 };
 

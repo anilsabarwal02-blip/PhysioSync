@@ -61,8 +61,14 @@ const Posture = () => {
         });
       }, 500);
     } else {
-      setCervicalFlexion(32);
-      setShoulderAbduction(145);
+      const timer = setTimeout(() => {
+        setCervicalFlexion(32);
+        setShoulderAbduction(145);
+      }, 0);
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timer);
+      };
     }
     return () => clearInterval(interval);
   }, [isAnalyzing]);

@@ -60,7 +60,7 @@ const PatientSchema = new mongoose.Schema({
 // Protocol Schema
 const ProtocolSchema = new mongoose.Schema({
   doctor_id: { type: String, required: true },
-  patient_name: { type: String, required: true, unique: true },
+  patient_name: { type: String, required: true },
   pain_score: { type: Number, default: 4 },
   exercises: { type: mongoose.Schema.Types.Mixed, required: true },
   rpe_exertion: { type: Number, default: 4 },
@@ -87,7 +87,7 @@ const EMRNoteSchema = new mongoose.Schema({
 // Wearable Schema
 const WearableSchema = new mongoose.Schema({
   doctor_id: { type: String, required: true },
-  patient_name: { type: String, required: true, unique: true },
+  patient_name: { type: String, required: true },
   heart_rate: { type: Number, default: 72 },
   steps: { type: Number, default: 4200 },
   calories: { type: Number, default: 150 },
