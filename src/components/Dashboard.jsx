@@ -52,7 +52,18 @@ const Dashboard = () => {
   });
   const [stats, setStats] = useState(() => {
     const localPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
-    const localAppointments = JSON.parse(localStorage.getItem('appointments_list') || '[]');
+    let localAppointments = JSON.parse(localStorage.getItem('appointments_list') || '[]');
+    
+    if (localAppointments.length === 0) {
+      const today = new Date().toISOString().split('T')[0];
+      localAppointments = [
+        { id: 'a1', patient: 'Rahul Verma', type: 'Tele Rehab', treatment: 'Knee Ligament Post-Op Rehab', time: '10:00 AM', date: today, duration: '45 min', status: 'Confirmed', notes: 'Initial consultation.' },
+        { id: 'a2', patient: 'Aaryan Sharma', type: 'OPD', treatment: 'Shoulder Rotator Cuff Tear', time: '11:30 AM', date: today, duration: '30 min', status: 'Confirmed', notes: 'Follow up.' },
+        { id: 'a3', patient: 'Priya Patel', type: 'Clinic Session', treatment: 'Lumbar Herniated Disc Rehab', time: '02:00 PM', date: today, duration: '60 min', status: 'Confirmed', notes: 'Therapy.' }
+      ];
+      localStorage.setItem('appointments_list', JSON.stringify(localAppointments));
+    }
+
     const total = localPatientsList.length;
     const pending = localPatientsList.filter(p => p.student && p.student !== 'None' && p.status === 'Pending').length;
 
@@ -131,10 +142,27 @@ const Dashboard = () => {
     const currentLocalPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
     localStorage.setItem('patients_list', JSON.stringify([newPatLocal, ...currentLocalPatientsList]));
 
+    // Auto-create an appointment for the new patient
+    const todayStr = new Date().toISOString().split('T')[0];
+    const newApp = {
+      id: 'a-' + Date.now(),
+      patient: newPatLocal.name,
+      type: 'Tele Rehab',
+      treatment: newPatLocal.condition,
+      time: '04:00 PM',
+      date: todayStr,
+      duration: '45 min',
+      status: 'Confirmed',
+      notes: 'Auto-scheduled initial consultation.'
+    };
+    const currentAppointments = JSON.parse(localStorage.getItem('appointments_list') || '[]');
+    localStorage.setItem('appointments_list', JSON.stringify([newApp, ...currentAppointments]));
+
     // Update total patients count in stats optimistically
     setStats(prev => ({
       ...prev,
       totalPatients: prev.totalPatients + 1,
+      todaySessions: prev.todaySessions + 1,
       newPatientsThisMonth: prev.newPatientsThisMonth + 1
     }));
 

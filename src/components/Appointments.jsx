@@ -66,8 +66,17 @@ const getTagColor = (type) => {
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState(() => {
-    const saved = localStorage.getItem('appointments_list');
-    return saved ? JSON.parse(saved) : [];
+    let saved = JSON.parse(localStorage.getItem('appointments_list') || '[]');
+    if (saved.length === 0) {
+      const today = new Date().toISOString().split('T')[0];
+      saved = [
+        { id: 'a1', patient: 'Rahul Verma', type: 'Tele Rehab', treatment: 'Knee Ligament Post-Op Rehab', time: '10:00 AM', date: today, duration: '45 min', status: 'Confirmed', notes: 'Initial consultation.' },
+        { id: 'a2', patient: 'Aaryan Sharma', type: 'OPD', treatment: 'Shoulder Rotator Cuff Tear', time: '11:30 AM', date: today, duration: '30 min', status: 'Confirmed', notes: 'Follow up.' },
+        { id: 'a3', patient: 'Priya Patel', type: 'Clinic Session', treatment: 'Lumbar Herniated Disc Rehab', time: '02:00 PM', date: today, duration: '60 min', status: 'Confirmed', notes: 'Therapy.' }
+      ];
+      localStorage.setItem('appointments_list', JSON.stringify(saved));
+    }
+    return saved;
   });
 
   useEffect(() => {
