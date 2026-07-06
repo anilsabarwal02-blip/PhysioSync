@@ -492,10 +492,11 @@ const Dashboard = () => {
       setSearchHistory(updatedHistory);
       localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
       setShowHistory(false);
-      setSearchTerm('');
-      alert(`Searching for: ${searchTerm}`);
     }
   };
+
+  const filteredPatients = patients.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.desc.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredLogs = studentLogs.filter(l => l.topic.toLowerCase().includes(searchTerm.toLowerCase()) || l.patient.toLowerCase().includes(searchTerm.toLowerCase()) || l.student.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const clearHistory = () => {
     setSearchHistory([]);
@@ -765,8 +766,8 @@ const Dashboard = () => {
           
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {activeListTab === 'patients' ? (
-              patients.length > 0 ? (
-                patients.map((p, index) => (
+              filteredPatients.length > 0 ? (
+                filteredPatients.map((p, index) => (
                   <div key={index} className="list-item">
                     <div className="patient-info">
                       <h4>{p.name}</h4>
@@ -794,8 +795,8 @@ const Dashboard = () => {
                 </div>
               )
             ) : (
-              studentLogs.length > 0 ? (
-                studentLogs.map((log) => (
+              filteredLogs.length > 0 ? (
+                filteredLogs.map((log) => (
                   <div key={log.id} style={{ background: 'var(--glass-bg)', padding: '16px', borderRadius: '12px', borderLeft: log.status === 'Pending' ? '4px solid var(--secondary)' : '4px solid var(--primary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
