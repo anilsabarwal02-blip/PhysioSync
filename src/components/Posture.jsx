@@ -8,10 +8,18 @@ const Posture = () => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  
   // Manage webcam stream based on analysis state
   useEffect(() => {
     let active = true;
     if (isAnalyzing) {
+      setCameraError(null);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError("Camera access is not supported by this browser.");
+        return;
+      }
       navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false })
         .then(stream => {
           if (active) {
@@ -25,6 +33,7 @@ const Posture = () => {
         })
         .catch(err => {
           console.warn("[Camera] Failed to access webcam:", err.message);
+          setCameraError(`Camera error: ${err.message}. Please allow camera permissions.`);
         });
     } else {
       if (streamRef.current) {
@@ -94,32 +103,37 @@ const Posture = () => {
           </div>
 
           <div style={{ height: '450px', background: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
-            {isAnalyzing && (
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                muted
-                style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} 
-              />
-            )}
-
-            {isAnalyzing ? (
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(59, 130, 246, 0.05)', border: '2px solid var(--primary)', pointerEvents: 'none' }}>
-                {/* Simulated Pose Skeleton Overlay */}
-                <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0 }}>
-                  <line x1="50%" y1="20%" x2="50%" y2="50%" stroke="#10b981" strokeWidth="4" />
-                  <line x1="50%" y1="20%" x2="40%" y2="40%" stroke="#ef4444" strokeWidth="4" strokeDasharray="5,5" />
-                  <line x1="50%" y1="20%" x2="60%" y2="40%" stroke="#10b981" strokeWidth="4" />
-                  <circle cx="50%" cy="20%" r="8" fill="var(--primary)" />
-                  <circle cx="40%" cy="40%" r="6" fill="#ef4444" />
-                  <circle cx="60%" cy="40%" r="6" fill="#10b981" />
-                </svg>
-                <div style={{ position: 'absolute', top: '20px', left: '20px', background: 'rgba(0,0,0,0.7)', padding: '10px 16px', borderRadius: '8px' }}>
-                  <p style={{ color: '#10b981', margin: 0, fontWeight: 'bold', fontSize: '0.85rem' }}>Model: TensorFlow PoseNet</p>
-                  <p style={{ color: 'white', margin: 0, fontSize: '0.75rem' }}>Tracking 17 keypoints @ 30fps</p>
-                </div>
+            {cameraError ? (
+              <div style={{ textAlign: 'center', color: '#ef4444', padding: '20px' }}>
+                <Camera size={48} style={{ opacity: 0.5, margin: '0 auto 16px', display: 'block' }} />
+                <p>{cameraError}</p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Make sure you have a webcam connected and permissions granted.</p>
               </div>
+            ) : isAnalyzing ? (
+              <>
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} 
+                />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(59, 130, 246, 0.05)', border: '2px solid var(--primary)', pointerEvents: 'none' }}>
+                  {/* Simulated Pose Skeleton Overlay */}
+                  <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0 }}>
+                    <line x1="50%" y1="20%" x2="50%" y2="50%" stroke="#10b981" strokeWidth="4" />
+                    <line x1="50%" y1="20%" x2="40%" y2="40%" stroke="#ef4444" strokeWidth="4" strokeDasharray="5,5" />
+                    <line x1="50%" y1="20%" x2="60%" y2="40%" stroke="#10b981" strokeWidth="4" />
+                    <circle cx="50%" cy="20%" r="8" fill="var(--primary)" />
+                    <circle cx="40%" cy="40%" r="6" fill="#ef4444" />
+                    <circle cx="60%" cy="40%" r="6" fill="#10b981" />
+                  </svg>
+                  <div style={{ position: 'absolute', top: '20px', left: '20px', background: 'rgba(0,0,0,0.7)', padding: '10px 16px', borderRadius: '8px' }}>
+                    <p style={{ color: '#10b981', margin: 0, fontWeight: 'bold', fontSize: '0.85rem' }}>Model: TensorFlow PoseNet</p>
+                    <p style={{ color: 'white', margin: 0, fontSize: '0.75rem' }}>Tracking 17 keypoints @ 30fps</p>
+                  </div>
+                </div>
+              </>
             ) : (
               <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                 <Camera size={48} style={{ opacity: 0.3, margin: '0 auto 16px' }} />
