@@ -54,7 +54,7 @@ const TeleRehab = () => {
 
   // Automated diagnosis exercise mapping
   const getDefaultExercise = (condition) => {
-    if (!condition) return 'Knee Extension';
+    if (!condition) return 'Other';
     const cond = condition.toLowerCase();
     if (cond.includes('shoulder') || cond.includes('rotator') || cond.includes('arm')) {
       return 'Shoulder Abduction';
@@ -62,7 +62,10 @@ const TeleRehab = () => {
     if (cond.includes('back') || cond.includes('spine') || cond.includes('disc') || cond.includes('lumbar') || cond.includes('neck')) {
       return 'Spine Flexion';
     }
-    return 'Knee Extension';
+    if (cond.includes('knee') || cond.includes('leg')) {
+      return 'Knee Extension';
+    }
+    return 'Other';
   };
 
   // Fetch patients list and doctor profile on mount
@@ -88,7 +91,10 @@ const TeleRehab = () => {
       
       setPatients(patientsList);
       setSelectedPatient(patientsList[0]);
-      setExercise(getDefaultExercise(patientsList[0].condition));
+      const defaultEx = getDefaultExercise(patientsList[0].condition);
+      setExercise(defaultEx);
+      if (defaultEx === 'Other') setCustomExercise(patientsList[0].condition);
+      else setCustomExercise('');
     };
 
     fetchPatients();
@@ -99,7 +105,10 @@ const TeleRehab = () => {
     const patient = patients.find(p => (p._id || p.id) === patientId);
     if (patient) {
       setSelectedPatient(patient);
-      setExercise(getDefaultExercise(patient.condition));
+      const defaultEx = getDefaultExercise(patient.condition);
+      setExercise(defaultEx);
+      if (defaultEx === 'Other') setCustomExercise(patient.condition);
+      else setCustomExercise('');
     }
   };
 
@@ -226,7 +235,10 @@ const TeleRehab = () => {
       const updatedPatients = [...patients, saved];
       setPatients(updatedPatients);
       setSelectedPatient(saved);
-      setExercise(getDefaultExercise(saved.condition));
+      const defaultEx = getDefaultExercise(saved.condition);
+      setExercise(defaultEx);
+      if (defaultEx === 'Other') setCustomExercise(saved.condition);
+      else setCustomExercise('');
     } catch (err) {
       if (!getBackendStatus()) {
         const newP = {
@@ -236,7 +248,10 @@ const TeleRehab = () => {
         const updatedPatients = [...patients, newP];
         setPatients(updatedPatients);
         setSelectedPatient(newP);
-        setExercise(getDefaultExercise(newP.condition));
+        const defaultExLocal = getDefaultExercise(newP.condition);
+        setExercise(defaultExLocal);
+        if (defaultExLocal === 'Other') setCustomExercise(newP.condition);
+        else setCustomExercise('');
         localStorage.setItem('patients_list', JSON.stringify(updatedPatients));
       } else {
         alert(err.message || 'Failed to add patient.');
