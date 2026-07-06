@@ -775,8 +775,8 @@ const Dashboard = () => {
       </div>
 
       <div className="dashboard-content-grid">
-        <div className="glass-panel recent-patients-list" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+        <div className="glass-panel recent-patients-list" style={{ display: 'flex', flexDirection: 'column', maxHeight: '500px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px', flexShrink: 0 }}>
             <div style={{ display: 'flex', gap: '16px' }}>
               <h3 
                 onClick={() => setActiveListTab('patients')} 
