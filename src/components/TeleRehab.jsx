@@ -32,6 +32,7 @@ const TeleRehab = () => {
   
   // Exercise config
   const [exercise, setExercise] = useState('Knee Extension');
+  const [customExercise, setCustomExercise] = useState('');
   const [reps, setReps] = useState(0);
   const repsRef = useRef(0);
   useEffect(() => {
@@ -721,7 +722,18 @@ const TeleRehab = () => {
                   <option value="Knee Extension">Knee Extension (Leg / Knee Rehab)</option>
                   <option value="Shoulder Abduction">Shoulder Abduction (Shoulder Raise)</option>
                   <option value="Spine Flexion">Spine Flexion (Back Flexion)</option>
+                  <option value="Other">Other (Custom)</option>
                 </select>
+                {exercise === 'Other' && (
+                  <input
+                    type="text"
+                    className="search-bar"
+                    placeholder="Enter custom exercise..."
+                    value={customExercise}
+                    onChange={(e) => setCustomExercise(e.target.value)}
+                    style={{ width: '100%', borderRadius: '8px', padding: '10px', color: '#000', fontSize: '0.95rem', marginTop: '10px', boxSizing: 'border-box' }}
+                  />
+                )}
               </div>
 
               <div className="responsive-grid-2" style={{ gap: '10px' }}>
