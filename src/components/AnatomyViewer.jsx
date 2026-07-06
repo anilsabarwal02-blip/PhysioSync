@@ -116,11 +116,17 @@ const AnatomyViewer = () => {
         }
       } catch (err) {
         console.warn("[API] Failed to fetch patients in AnatomyViewer:", err.message);
-        const localList = JSON.parse(localStorage.getItem('patients_list') || '[]');
-        setPatients(localList);
-        if (localList.length > 0) {
-          setSelectedPatient(localList[0]);
+        let localList = JSON.parse(localStorage.getItem('patients_list') || '[]');
+        if (localList.length === 0) {
+          localList = [
+            { id: 'p1', name: 'Rahul Verma', condition: 'Knee Ligament Post-Op Rehab', age: 28, gender: 'Male' },
+            { id: 'p2', name: 'Vikram Singh', condition: 'Shoulder Rotator Cuff Tear', age: 34, gender: 'Male' },
+            { id: 'p3', name: 'Priya Sharma', condition: 'Cervical Spondylosis', age: 45, gender: 'Female' },
+            { id: 'p4', name: 'Neha Gupta', condition: 'Lumbar Herniated Disc Rehab', age: 41, gender: 'Female' }
+          ];
         }
+        setPatients(localList);
+        setSelectedPatient(localList[0]);
       }
     };
     fetchPatients();
