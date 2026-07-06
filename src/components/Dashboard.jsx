@@ -147,7 +147,7 @@ const Dashboard = () => {
     const newApp = {
       id: 'a-' + Date.now(),
       patient: newPatLocal.name,
-      type: 'Tele Rehab',
+      type: newPatLocal.condition.toLowerCase().includes('tele') ? 'Tele Rehab' : 'Clinic Session',
       treatment: newPatLocal.condition,
       time: '04:00 PM',
       date: todayStr,
