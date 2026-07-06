@@ -44,6 +44,7 @@ const TeleRehab = () => {
   const [newPatientName, setNewPatientName] = useState('');
   const [newPatientAge, setNewPatientAge] = useState('');
   const [newPatientGender, setNewPatientGender] = useState('Male');
+  const [newPatientPhone, setNewPatientPhone] = useState('');
   const [newPatientCondition, setNewPatientCondition] = useState('');
 
   const videoRef = useRef(null);
@@ -79,9 +80,9 @@ const TeleRehab = () => {
       // Fallback patients database if empty
       if (!patientsList || patientsList.length === 0) {
         patientsList = [
-          { id: 'p1', name: 'Rahul Verma', condition: 'Knee Ligament Post-Op Rehab', age: 28, gender: 'Male' },
-          { id: 'p2', name: 'Aaryan Sharma', condition: 'Shoulder Rotator Cuff Tear', age: 34, gender: 'Male' },
-          { id: 'p3', name: 'Priya Patel', condition: 'Lumbar Herniated Disc Rehab', age: 41, gender: 'Female' }
+          { id: 'p1', name: 'Rahul Verma', condition: 'Knee Ligament Post-Op Rehab', age: 28, gender: 'Male', phone: '9876543210' },
+          { id: 'p2', name: 'Aaryan Sharma', condition: 'Shoulder Rotator Cuff Tear', age: 34, gender: 'Male', phone: '9123456789' },
+          { id: 'p3', name: 'Priya Patel', condition: 'Lumbar Herniated Disc Rehab', age: 41, gender: 'Female', phone: '9988776655' }
         ];
       }
       
@@ -216,6 +217,7 @@ const TeleRehab = () => {
       name: newPatientName.trim(),
       age: newPatientAge ? parseInt(newPatientAge) : null,
       gender: newPatientGender,
+      phone: newPatientPhone.trim(),
       condition: newPatientCondition.trim()
     };
 
@@ -246,6 +248,7 @@ const TeleRehab = () => {
     setNewPatientName('');
     setNewPatientAge('');
     setNewPatientGender('Male');
+    setNewPatientPhone('');
     setNewPatientCondition('');
     setShowAddPatient(false);
   };
@@ -685,6 +688,10 @@ const TeleRehab = () => {
                     </select>
                   </div>
                   <input 
+                    type="tel" placeholder="Phone Number" value={newPatientPhone} onChange={(e) => setNewPatientPhone(e.target.value)}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
+                  />
+                  <input 
                     type="text" placeholder="Clinical Condition *" value={newPatientCondition} onChange={(e) => setNewPatientCondition(e.target.value)}
                     style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
                   />
@@ -790,7 +797,7 @@ const TeleRehab = () => {
           </div>
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ color: 'white', marginBottom: '8px' }}>Sending secure invite link...</h2>
-            <p style={{ color: '#94a3b8' }}>An SMS link has been dispatched to {selectedPatient.name}'s mobile device.</p>
+            <p style={{ color: '#94a3b8' }}>An SMS link has been dispatched to {selectedPatient.phone ? '(***) ***-' + selectedPatient.phone.slice(-4) : selectedPatient.name + "'s mobile device"}.</p>
             <p style={{ color: 'var(--accent)', fontSize: '0.9rem', marginTop: '10px' }}>Waiting for patient to click the link...</p>
           </div>
           <button 
