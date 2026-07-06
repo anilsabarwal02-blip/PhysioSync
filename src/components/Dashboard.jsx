@@ -195,7 +195,7 @@ const Dashboard = () => {
   };
 
   const markAllNotificationsAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications([]);
   };
 
   const getInitials = (name) => {
@@ -596,12 +596,12 @@ const Dashboard = () => {
               <div className="glass-panel notification-dropdown">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
                   <h4 style={{ fontSize: '0.95rem', margin: 0, color: 'var(--text-main)' }}>Notifications</h4>
-                  {notifications.some(n => !n.read) && (
+                  {notifications.length > 0 && (
                     <button 
                       onClick={markAllNotificationsAsRead}
                       style={{ background: 'transparent', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}
                     >
-                      Mark all read
+                      Clear all
                     </button>
                   )}
                 </div>
