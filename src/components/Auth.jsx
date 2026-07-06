@@ -44,7 +44,7 @@ const Auth = ({ onLogin }) => {
             // Local fallback logic
             const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
             const hashedPassword = await hashPassword(formData.password);
-            const userIdx = storedUsers.findIndex(u => u.doctorId === formData.doctorId && (u.password === hashedPassword || u.password === formData.password));
+            const userIdx = storedUsers.findIndex(u => u.doctorId === formData.doctorId);
             if (userIdx !== -1) {
               const user = storedUsers[userIdx];
               if (user.password !== hashedPassword) {
