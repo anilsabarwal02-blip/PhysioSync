@@ -539,11 +539,12 @@ const TeleRehab = () => {
       ctx.fillText(`TARGET: 170° | REPS: ${repsRef.current}/15`, 24 * scale, height - 38 * scale);
       ctx.fillStyle = '#ffffff';
       ctx.font = `bold ${Math.round(11 * scale)}px 'Outfit', sans-serif`;
-      ctx.fillText(`EXERCISE: Knee Extension`, 24 * scale, height - 56 * scale);
+      const exerciseName = exercise === 'Other' && customExercise ? customExercise : 'Knee Extension';
+      ctx.fillText(`EXERCISE: ${exerciseName}`, 24 * scale, height - 56 * scale);
 
       return { angleVal: kneeAngleDeg, threshold: 155, recovery: 110 };
     }
-  }, [exercise]);
+  }, [exercise, customExercise]);
 
   // Canvas loop
   useEffect(() => {
