@@ -147,7 +147,19 @@ const Dashboard = () => {
     const newApp = {
       id: 'a-' + Date.now(),
       patient: newPatLocal.name,
-      type: newPatLocal.condition.toLowerCase().includes('tele') ? 'Tele Rehab' : 'Clinic Session',
+      type: (() => {
+        const cond = newPatLocal.condition.toLowerCase();
+        if (cond.includes('tele')) return 'Tele Rehab';
+        if (cond.includes('clinic')) return 'Clinic Session';
+        if (cond.includes('opd')) return 'OPD';
+        if (cond.includes('ipd')) return 'IPD';
+        if (cond.includes('emergency')) return 'Emergency';
+        if (cond.includes('home')) return 'Home Visit';
+        if (cond.includes('diagnostic')) return 'Diagnostic';
+        if (cond.includes('antenatal')) return 'Antenatal';
+        if (cond.includes('paediatric')) return 'Paediatric';
+        return 'Other';
+      })(),
       treatment: newPatLocal.condition,
       time: '04:00 PM',
       date: todayStr,

@@ -14,7 +14,8 @@ const APPOINTMENT_TYPES = [
   'Home Visit',
   'Diagnostic',
   'Antenatal',
-  'Paediatric'
+  'Paediatric',
+  'Other'
 ];
 
 const getTypeIcon = (type) => {
