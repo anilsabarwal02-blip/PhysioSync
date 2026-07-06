@@ -153,7 +153,8 @@ const Posture = () => {
         </div>
 
         {/* Real-time Metrics Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {isAnalyzing && !cameraError && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="glass-panel" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px' }}>
               <ActivitySquare size={20} color="var(--primary)" />
@@ -195,6 +196,7 @@ const Posture = () => {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );
