@@ -222,6 +222,11 @@ const TeleRehab = () => {
       return;
     }
 
+    if (newPatientPhone && newPatientPhone.length > 10) {
+      alert("Phone number cannot exceed 10 digits.");
+      return;
+    }
+
     const patientData = {
       name: newPatientName.trim(),
       age: newPatientAge ? parseInt(newPatientAge) : null,

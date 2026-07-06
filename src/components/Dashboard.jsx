@@ -109,6 +109,11 @@ const Dashboard = () => {
       return;
     }
 
+    if (newPhone && newPhone.length > 10) {
+      alert("Phone number cannot exceed 10 digits.");
+      return;
+    }
+
     const tempId = 'temp-' + Date.now();
     const newPatLocal = {
       id: tempId,
@@ -996,7 +1001,8 @@ const Dashboard = () => {
                   type="tel" 
                   className="search-bar" 
                   style={{ width: '100%', borderRadius: '8px' }} 
-                  placeholder="Phone number" 
+                  placeholder="Phone number"
+                  maxLength={10} 
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
                 />
