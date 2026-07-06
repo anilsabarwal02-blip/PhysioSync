@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, ActivitySquare, Bell, Mic, Search, Clock, X, BrainCircuit, Trash2, Plus, CheckCircle } from 'lucide-react';
+import { Users, ActivitySquare, Bell, Mic, Search, Clock, X, BrainCircuit, Trash2, Plus, CheckCircle, Phone } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
 
 let idCounter = Date.now();
@@ -838,7 +838,15 @@ const Dashboard = () => {
                 filteredPatients.map((p, index) => (
                   <div key={index} className="list-item">
                     <div className="patient-info">
-                      <h4>{p.name}</h4>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h4 style={{ margin: 0 }}>{p.name}</h4>
+                        {p.phone && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--border)', padding: '2px 8px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Phone size={10} />
+                            {p.phone}
+                          </span>
+                        )}
+                      </div>
                       <p>{p.desc}</p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
