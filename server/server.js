@@ -130,21 +130,21 @@ app.post('/api/auth/login', async (req, res) => {
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({ error: 'Database is not connected. Please configure MONGODB_URI on your live server.' });
   }
-  const { doctorId, password } = req.body;
-  if (!doctorId || !password) {
-    return res.status(400).json({ error: 'Doctor ID and password are required' });
+  const { name, password } = req.body;
+  if (!name || !password) {
+    return res.status(400).json({ error: 'Name and password are required' });
   }
 
   try {
-    let doctor = await Doctor.findOne({ doctor_id: doctorId });
+    let doctor = await Doctor.findOne({ name: name });
     
     if (!doctor) {
-      return res.status(400).json({ error: 'Invalid Doctor ID or password' });
+      return res.status(400).json({ error: 'Invalid name or password' });
     }
 
     const isPasswordValid = await bcrypt.compare(password, doctor.password);
     if (!isPasswordValid) {
-      return res.status(400).json({ error: 'Invalid Doctor ID or password' });
+      return res.status(400).json({ error: 'Invalid name or password' });
     }
 
     const token = jwt.sign(

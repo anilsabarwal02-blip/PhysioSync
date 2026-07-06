@@ -29,7 +29,7 @@ const Auth = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.password || (isLogin && !formData.doctorId) || (!isLogin && !formData.name)) {
+    if (!formData.password || !formData.name) {
       setError('Please fill all required fields');
       return;
     }
@@ -37,14 +37,14 @@ const Auth = ({ onLogin }) => {
     try {
       if (isLogin) {
         try {
-          const res = await api.login(formData.doctorId, formData.password);
+          const res = await api.login(formData.name, formData.password);
           onLogin(res.user);
         } catch (backendErr) {
           if (!getBackendStatus()) {
             // Local fallback logic
             const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
             const hashedPassword = await hashPassword(formData.password);
-            const userIdx = storedUsers.findIndex(u => u.doctorId === formData.doctorId);
+            const userIdx = storedUsers.findIndex(u => u.name === formData.name);
             if (userIdx !== -1) {
               const user = storedUsers[userIdx];
               if (user.password !== hashedPassword) {
@@ -55,16 +55,16 @@ const Auth = ({ onLogin }) => {
               localStorage.setItem('currentUser', JSON.stringify(user));
               onLogin(user);
             } else {
-              setError('Invalid Doctor ID or password (Offline Mode)');
+              setError('Invalid name or password (Offline Mode)');
             }
           } else {
-            setError(backendErr.message || 'Invalid Doctor ID or password');
+            setError(backendErr.message || 'Invalid name or password');
           }
         }
       } else {
         try {
           const res = await api.register(formData.name, formData.password);
-          setSuccessMsg(`Account created! Your unique Doctor ID is: ${res.doctor.doctorId}. Please save it.`);
+          setSuccessMsg(`Account created! You can now log in.`);
           setError('');
           setIsLogin(true);
           setFormData({ name: formData.name, doctorId: res.doctor.doctorId, password: formData.password });
@@ -78,7 +78,7 @@ const Auth = ({ onLogin }) => {
             storedUsers.push(newUser);
             localStorage.setItem('users', JSON.stringify(storedUsers));
             
-            setSuccessMsg(`Account created! Your unique Doctor ID is: ${newId}. Please save it. (Offline Mode)`);
+            setSuccessMsg(`Account created! You can now log in. (Offline Mode)`);
             setError('');
             setIsLogin(true);
             setFormData({ name: formData.name, doctorId: newId, password: formData.password });
@@ -105,32 +105,17 @@ const Auth = ({ onLogin }) => {
         {successMsg && <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--primary)', border: '1px solid var(--primary)', borderRadius: '8px', fontSize: '0.9rem', textAlign: 'center', fontWeight: 'bold' }}>{successMsg}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {!isLogin && (
-            <div style={{ position: 'relative' }}>
-              <User size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
-              <input 
-                type="text" 
-                className="search-bar" 
-                placeholder="Full Name (Dr. ...)" 
-                style={{ width: '100%', paddingLeft: '40px', boxSizing: 'border-box' }}
-                value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
-              />
-            </div>
-          )}
-          {isLogin && (
-            <div style={{ position: 'relative' }}>
-              <User size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
-              <input 
-                type="text" 
-                className="search-bar" 
-                placeholder="Doctor ID (e.g., DR-1234)" 
-                style={{ width: '100%', paddingLeft: '40px', boxSizing: 'border-box' }}
-                value={formData.doctorId}
-                onChange={e => setFormData({...formData, doctorId: e.target.value})}
-              />
-            </div>
-          )}
+          <div style={{ position: 'relative' }}>
+            <User size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+            <input 
+              type="text" 
+              className="search-bar" 
+              placeholder="Full Name (Dr. ...)" 
+              style={{ width: '100%', paddingLeft: '40px', boxSizing: 'border-box' }}
+              value={formData.name}
+              onChange={e => setFormData({...formData, name: e.target.value})}
+            />
+          </div>
           <div style={{ position: 'relative' }}>
             <Lock size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
             <input 
@@ -144,7 +129,7 @@ const Auth = ({ onLogin }) => {
           </div>
 
           <button type="submit" className="glass-button" style={{ marginTop: '10px', padding: '14px', width: '100%' }}>
-            {isLogin ? 'Login Securely' : 'Generate Doctor ID & Register'}
+            {isLogin ? 'Login Securely' : 'Register Account'}
           </button>
         </form>
 

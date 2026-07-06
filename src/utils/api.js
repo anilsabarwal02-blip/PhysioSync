@@ -78,11 +78,11 @@ async function request(endpoint, options = {}) {
 
 export const api = {
   // Auth Services
-  login: async (doctorId, password) => {
+  login: async (name, password) => {
     resetBackendStatus(); // retry on manual user login
     const data = await request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ doctorId, password })
+      body: JSON.stringify({ name, password })
     });
     localStorage.setItem('token', data.token);
     localStorage.setItem('currentUser', JSON.stringify(data.user));
