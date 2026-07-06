@@ -6,18 +6,9 @@ const getApiBaseUrl = () => {
     return 'http://10.0.2.2:5000/api';
   }
 
-  const { hostname, port } = window.location;
-
-  // If we are running on Vercel or a deployed production domain
-  const isProduction = hostname.endsWith('.vercel.app') ||
-    (hostname !== 'localhost' && hostname !== '127.0.0.1' && !/^(192\.168\.|10\.|172\.)/.test(hostname) && !port);
-
-  if (isProduction) {
-    return '/api';
-  }
-
-  // Otherwise (local development or web), connect to port 5000 of the hostname
-  return `http://${hostname}:5000/api`;
+  // For web apps (both local development via Vite proxy and live production on Vercel),
+  // we just use the relative '/api' path. The server automatically routes it correctly!
+  return '/api';
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
