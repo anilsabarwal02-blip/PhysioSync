@@ -1,4 +1,6 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -7,6 +9,19 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "type": "service",
+        "service": "physiosync"
+      }
     }
-  ]
+  ],
+  "services": {
+    "physiosync": {
+      "root": ".",
+      "framework": "vite"
+    }
+  }
 }
