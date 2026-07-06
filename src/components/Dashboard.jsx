@@ -105,13 +105,13 @@ const Dashboard = () => {
   const [studentLogs, setStudentLogs] = useState([]);
 
   const handleAddPatient = async () => {
-    if (!newName.trim() || !newCondition.trim()) {
-      alert("Please fill in Name and Condition.");
+    if (!newName.trim() || !newCondition.trim() || !newPhone.trim()) {
+      alert("Please fill in Name, Phone Number, and Condition.");
       return;
     }
 
-    if (newPhone && newPhone.length > 10) {
-      alert("Phone number cannot exceed 10 digits.");
+    if (newPhone.length !== 10) {
+      alert("Phone number must be exactly 10 digits.");
       return;
     }
 

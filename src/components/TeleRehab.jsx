@@ -217,13 +217,13 @@ const TeleRehab = () => {
   };
 
   const handleAddPatient = async () => {
-    if (!newPatientName.trim() || !newPatientCondition.trim()) {
-      alert('Patient name and condition are required.');
+    if (!newPatientName.trim() || !newPatientCondition.trim() || !newPatientPhone.trim()) {
+      alert('Name, Phone Number, and Condition are required.');
       return;
     }
 
-    if (newPatientPhone && newPatientPhone.length > 10) {
-      alert("Phone number cannot exceed 10 digits.");
+    if (newPatientPhone.length !== 10) {
+      alert("Phone number must be exactly 10 digits.");
       return;
     }
 
