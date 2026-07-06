@@ -158,7 +158,6 @@ const Dashboard = () => {
       patient: newPatLocal.name,
       type: (() => {
         const cond = newPatLocal.condition.toLowerCase();
-        if (cond.includes('tele')) return 'Tele Rehab';
         if (cond.includes('clinic')) return 'Clinic Session';
         if (cond.includes('opd')) return 'OPD';
         if (cond.includes('ipd')) return 'IPD';

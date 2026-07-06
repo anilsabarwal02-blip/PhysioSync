@@ -10,7 +10,6 @@ const APPOINTMENT_TYPES = [
   'IPD',
   'Emergency',
   'Clinic Session',
-  'Tele Rehab',
   'Home Visit',
   'Diagnostic',
   'Antenatal',
@@ -20,9 +19,6 @@ const APPOINTMENT_TYPES = [
 
 const getTypeIcon = (type) => {
   switch (type) {
-    case 'Tele Rehab':
-    case 'Tele-Rehab':
-      return <Video size={16} />;
     case 'Home Visit':
       return <Home size={16} />;
     case 'OPD':
@@ -45,9 +41,6 @@ const getTypeIcon = (type) => {
 
 const getTagColor = (type) => {
   switch (type) {
-    case 'Tele Rehab':
-    case 'Tele-Rehab':
-      return 'var(--secondary)';
     case 'Emergency':
       return 'var(--danger)';
     case 'Home Visit':
@@ -71,7 +64,7 @@ const Appointments = () => {
     if (saved.length === 0) {
       const today = new Date().toISOString().split('T')[0];
       saved = [
-        { id: 'a1', patient: 'Rahul Verma', type: 'Tele Rehab', treatment: 'Knee Ligament Post-Op Rehab', time: '10:00 AM', date: today, duration: '45 min', status: 'Confirmed', notes: 'Initial consultation.' },
+        { id: 'a1', patient: 'Rahul Verma', type: 'Clinic Session', treatment: 'Knee Ligament Post-Op Rehab', time: '10:00 AM', date: today, duration: '45 min', status: 'Confirmed', notes: 'Initial consultation.' },
         { id: 'a2', patient: 'Aaryan Sharma', type: 'OPD', treatment: 'Shoulder Rotator Cuff Tear', time: '11:30 AM', date: today, duration: '30 min', status: 'Confirmed', notes: 'Follow up.' },
         { id: 'a3', patient: 'Priya Patel', type: 'Clinic Session', treatment: 'Lumbar Herniated Disc Rehab', time: '02:00 PM', date: today, duration: '60 min', status: 'Confirmed', notes: 'Therapy.' }
       ];
@@ -247,8 +240,8 @@ const Appointments = () => {
             </div>
             <div className="stats-list-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
               {APPOINTMENT_TYPES.map(type => {
-                const count = appointments.filter(app => app.type === type || (type === 'Tele Rehab' && app.type === 'Tele-Rehab')).length;
-                const isSelected = filterType === type || (type === 'Tele Rehab' && filterType === 'Tele-Rehab');
+                const count = appointments.filter(app => app.type === type).length;
+                const isSelected = filterType === type;
                 
                 return (
                   <div 
