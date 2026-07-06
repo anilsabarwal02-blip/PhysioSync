@@ -646,7 +646,7 @@ const TeleRehab = () => {
                   className="search-bar" 
                   value={selectedPatient ? (selectedPatient._id || selectedPatient.id) : ''} 
                   onChange={(e) => handlePatientChange(e.target.value)}
-                  style={{ width: '100%', borderRadius: '8px', padding: '10px', color: '#000', fontSize: '0.95rem' }}
+                  style={{ width: '100%', borderRadius: '8px', padding: '10px', color: '#000', fontSize: '0.95rem', boxSizing: 'border-box' }}
                 >
                   {patients.map(p => (
                     <option key={p._id || p.id} value={p._id || p.id}>
@@ -658,7 +658,7 @@ const TeleRehab = () => {
 
               {/* Add Patient Inline Form */}
               {showAddPatient && (
-                <div style={{ padding: '16px', borderRadius: '12px', border: '1px dashed var(--primary)', background: 'rgba(13, 148, 136, 0.03)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px dashed var(--primary)', background: 'rgba(13, 148, 136, 0.03)', display: 'flex', flexDirection: 'column', gap: '10px', boxSizing: 'border-box' }}>
                   <h4 style={{ margin: 0, fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Plus size={16} /> New Patient
                   </h4>
@@ -669,11 +669,11 @@ const TeleRehab = () => {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input 
                       type="number" placeholder="Age" value={newPatientAge} onChange={(e) => setNewPatientAge(e.target.value)}
-                      style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', flex: 1 }}
+                      style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', flex: 1, minWidth: 0, boxSizing: 'border-box' }}
                     />
                     <select 
                       value={newPatientGender} onChange={(e) => setNewPatientGender(e.target.value)}
-                      style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', flex: 1 }}
+                      style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', flex: 1, minWidth: 0, boxSizing: 'border-box' }}
                     >
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
