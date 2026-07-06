@@ -24,6 +24,7 @@ const Dashboard = () => {
       return {
         id: p.id,
         name: p.name,
+        phone: p.phone,
         desc,
         status: isApproved ? 'Approved' : p.status,
         statusClass: isApproved ? 'status-active' : 'status-pending',
@@ -134,6 +135,7 @@ const Dashboard = () => {
     const mappedLocal = {
       id: tempId,
       name: newPatLocal.name,
+      phone: newPatLocal.phone,
       desc,
       status: newPatLocal.status,
       statusClass: 'status-pending',
@@ -208,6 +210,7 @@ const Dashboard = () => {
         const finalMapped = {
           id: savedPatient._id || savedPatient.id,
           name: savedPatient.name,
+          phone: savedPatient.phone,
           desc,
           status: savedPatient.status,
           statusClass: isApproved ? 'status-active' : 'status-pending',
