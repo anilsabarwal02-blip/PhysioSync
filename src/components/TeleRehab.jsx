@@ -195,7 +195,10 @@ const TeleRehab = () => {
   };
 
   const handleStartCall = () => {
-    setCallState('ringing');
+    setCallState('sending_link');
+    setTimeout(() => {
+      setCallState('ringing');
+    }, 3000);
     setReps(0);
     setDuration(0);
     setCameraActive(true);
@@ -761,6 +764,51 @@ const TeleRehab = () => {
             }}
           >
             <Phone size={18} /> Connect Video Consult
+          </button>
+        </div>
+      )}
+
+      {/* CALL STATE: SENDING LINK */}
+      {callState === 'sending_link' && selectedPatient && (
+        <div className="glass-panel" style={{ padding: '60px', height: '550px', background: 'linear-gradient(135deg, #0f172a, #1e1b4b)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '30px', position: 'relative' }}>
+          <div className="ringing-indicator" style={{ position: 'relative' }}>
+            <div className="avatar" style={{ width: '100px', height: '100px', fontSize: '2.5rem', background: 'var(--secondary)', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '50%', boxShadow: '0 0 0 10px rgba(14, 165, 233, 0.2)' }}>
+              <Phone size={40} />
+            </div>
+            {/* Pulsing visual circles */}
+            <div style={{
+              position: 'absolute',
+              top: '-10px',
+              left: '-10px',
+              right: '-10px',
+              bottom: '-10px',
+              border: '2px solid var(--secondary)',
+              borderRadius: '50%',
+              animation: 'pulse 1.5s infinite',
+              opacity: 0.5
+            }} />
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ color: 'white', marginBottom: '8px' }}>Sending secure invite link...</h2>
+            <p style={{ color: '#94a3b8' }}>An SMS link has been dispatched to {selectedPatient.name}'s mobile device.</p>
+            <p style={{ color: 'var(--accent)', fontSize: '0.9rem', marginTop: '10px' }}>Waiting for patient to click the link...</p>
+          </div>
+          <button 
+            onClick={() => setCallState('idle')}
+            className="glass-button" 
+            style={{ 
+              background: 'var(--danger)', 
+              color: 'white', 
+              borderRadius: '30px', 
+              padding: '12px 30px', 
+              border: 'none', 
+              fontWeight: '600', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px' 
+            }}
+          >
+            <PhoneOff size={18} /> Cancel Call
           </button>
         </div>
       )}
