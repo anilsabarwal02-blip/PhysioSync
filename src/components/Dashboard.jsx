@@ -87,6 +87,7 @@ const Dashboard = () => {
   const [newName, setNewName] = useState('');
   const [newAge, setNewAge] = useState('');
   const [newGender, setNewGender] = useState('Male');
+  const [newPhone, setNewPhone] = useState('');
   const [newCondition, setNewCondition] = useState('');
   const [activeListTab, setActiveListTab] = useState('patients'); // 'patients' | 'logs'
   const [studentLogs, setStudentLogs] = useState([]);
@@ -103,6 +104,7 @@ const Dashboard = () => {
       name: newName,
       age: newAge ? parseInt(newAge) : null,
       gender: newGender,
+      phone: newPhone,
       condition: newCondition,
       student: 'None',
       status: 'Pending',
@@ -140,6 +142,7 @@ const Dashboard = () => {
     setNewName('');
     setNewAge('');
     setNewGender('Male');
+    setNewPhone('');
     setNewCondition('');
     setShowAddModal(false);
 
@@ -149,6 +152,7 @@ const Dashboard = () => {
         name: newPatLocal.name,
         age: newPatLocal.age,
         gender: newPatLocal.gender,
+        phone: newPatLocal.phone,
         condition: newPatLocal.condition
       });
 
@@ -945,6 +949,17 @@ const Dashboard = () => {
                     <option value="Other">Other</option>
                   </select>
                 </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Phone Number</label>
+                <input 
+                  type="tel" 
+                  className="search-bar" 
+                  style={{ width: '100%', borderRadius: '8px' }} 
+                  placeholder="Phone number" 
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Condition / Diagnosis</label>
