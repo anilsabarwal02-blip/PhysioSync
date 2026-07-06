@@ -86,10 +86,6 @@ const Sidebar = ({ onLogout }) => {
           <Camera size={20} />
           <span>AI Posture</span>
         </NavLink>
-        <NavLink to="/tele-rehab" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <MonitorSmartphone size={20} />
-          <span>Tele-Rehab</span>
-        </NavLink>
       </nav>
 
       <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: 'auto' }}>

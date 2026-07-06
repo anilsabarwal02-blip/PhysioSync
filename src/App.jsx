@@ -11,7 +11,6 @@ import VoiceNotes from './components/VoiceNotes';
 import TreatmentPlanner from './components/TreatmentPlanner';
 import AnatomyViewer from './components/AnatomyViewer';
 import WearableSync from './components/WearableSync';
-import TeleRehab from './components/TeleRehab';
 import Posture from './components/Posture';
 import RecycleBin from './components/RecycleBin';
 import './App.css';
@@ -56,7 +55,6 @@ function App() {
           <Route path="/treatment-planner" element={<TreatmentPlanner />} />
           <Route path="/anatomy-viewer" element={<AnatomyViewer />} />
           <Route path="/wearable-sync" element={<WearableSync />} />
-          <Route path="/tele-rehab" element={<TeleRehab />} />
           <Route path="/posture" element={<Posture />} />
           <Route path="/recycle-bin" element={<RecycleBin />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
