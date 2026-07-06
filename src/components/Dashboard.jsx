@@ -101,17 +101,19 @@ const Dashboard = () => {
   const [newGender, setNewGender] = useState('Male');
   const [newPhone, setNewPhone] = useState('');
   const [newCondition, setNewCondition] = useState('');
+  const [formError, setFormError] = useState('');
   const [activeListTab, setActiveListTab] = useState('patients'); // 'patients' | 'logs'
   const [studentLogs, setStudentLogs] = useState([]);
 
   const handleAddPatient = async () => {
+    setFormError('');
     if (!newName.trim() || !newCondition.trim() || !newPhone.trim()) {
-      alert("Please fill in Name, Phone Number, and Condition.");
+      setFormError("Please fill in Name, Phone Number, and Condition.");
       return;
     }
 
     if (newPhone.length !== 10) {
-      alert("Phone number must be exactly 10 digits.");
+      setFormError("Phone number must be exactly 10 digits.");
       return;
     }
 
@@ -968,6 +970,7 @@ const Dashboard = () => {
               <X size={20} />
             </button>
             <h2 style={{ margin: '0 0 20px 0' }}>Add New Patient</h2>
+            {formError && <div style={{ color: 'var(--danger)', fontSize: '0.85rem', marginBottom: '16px', background: 'rgba(239, 68, 68, 0.1)', padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>{formError}</div>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Patient Name</label>

@@ -33,6 +33,7 @@ const TeleRehab = () => {
   // Exercise config
   const [exercise, setExercise] = useState('Knee Extension');
   const [customExercise, setCustomExercise] = useState('');
+  const [formError, setFormError] = useState('');
   const [reps, setReps] = useState(0);
   const repsRef = useRef(0);
   useEffect(() => {
@@ -217,13 +218,14 @@ const TeleRehab = () => {
   };
 
   const handleAddPatient = async () => {
+    setFormError('');
     if (!newPatientName.trim() || !newPatientCondition.trim() || !newPatientPhone.trim()) {
-      alert('Name, Phone Number, and Condition are required.');
+      setFormError('Name, Phone Number, and Condition are required.');
       return;
     }
 
     if (newPatientPhone.length !== 10) {
-      alert("Phone number must be exactly 10 digits.");
+      setFormError("Phone number must be exactly 10 digits.");
       return;
     }
 
