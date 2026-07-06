@@ -8,7 +8,6 @@ const Posture = () => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   
   // Manage webcam stream based on analysis state
