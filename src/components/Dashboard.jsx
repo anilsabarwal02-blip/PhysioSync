@@ -524,20 +524,39 @@ const Dashboard = () => {
               onFocus={() => setShowHistory(true)}
               onBlur={() => setTimeout(() => setShowHistory(false), 200)}
             />
-            {showHistory && searchHistory.length > 0 && (
-              <div className="glass-panel" style={{ position: 'absolute', top: '45px', left: 0, right: 0, zIndex: 100, padding: '10px 0', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px 8px', borderBottom: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  <span>Recent Searches</span>
-                  <span onClick={clearHistory} style={{ cursor: 'pointer', color: 'var(--primary)' }}>Clear</span>
-                </div>
-                {searchHistory.map((item, index) => (
-                  <div key={index} style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem' }} className="nav-item" onClick={() => setSearchTerm(item)}>
-                    <Clock size={16} color="var(--text-muted)" />
-                    {item}
+            {showHistory && (searchTerm.trim() !== '' ? (
+              filteredPatients.length > 0 && (
+                <div className="glass-panel" style={{ position: 'absolute', top: '45px', left: 0, right: 0, zIndex: 100, padding: '10px 0', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px 8px', borderBottom: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <span>Patient Matches</span>
                   </div>
-                ))}
-              </div>
-            )}
+                  {filteredPatients.slice(0, 5).map((p, index) => (
+                    <div key={index} style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '0.9rem' }} className="nav-item" onClick={() => { setSearchTerm(p.name); setShowHistory(false); }}>
+                      <Users size={16} color="var(--primary)" />
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                         <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>{p.name}</span>
+                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.desc}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              searchHistory.length > 0 && (
+                <div className="glass-panel" style={{ position: 'absolute', top: '45px', left: 0, right: 0, zIndex: 100, padding: '10px 0', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px 8px', borderBottom: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <span>Recent Searches</span>
+                    <span onClick={clearHistory} style={{ cursor: 'pointer', color: 'var(--primary)' }}>Clear</span>
+                  </div>
+                  {searchHistory.map((item, index) => (
+                    <div key={index} style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem' }} className="nav-item" onClick={() => setSearchTerm(item)}>
+                      <Clock size={16} color="var(--text-muted)" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              )
+            ))}
           </div>
           {/* Bell Notification Button & Dropdown */}
           <div style={{ position: 'relative' }}>
