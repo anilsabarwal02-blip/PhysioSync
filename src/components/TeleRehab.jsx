@@ -736,16 +736,7 @@ const TeleRehab = () => {
                 )}
               </div>
 
-              <div className="responsive-grid-2" style={{ gap: '10px' }}>
-                <div style={{ padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Target reps</span>
-                  <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '0.9rem' }}>15 Reps</p>
-                </div>
-                <div style={{ padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>AI Tracking</span>
-                  <p style={{ margin: '2px 0 0 0', fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--accent)' }}>Active (2D)</p>
-                </div>
-              </div>
+
             </div>
 
           </div>
