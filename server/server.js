@@ -290,7 +290,11 @@ app.delete('/api/appointments/:id', authenticateToken, async (req, res) => {
 app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
   try {
     const doctorId = req.user.doctorId;
-    const totalPatients = await Patient.countDocuments({ doctor_id: doctorId, deleted: false });
+    const totalPatients = await Patient.countDocuments({ 
+      doctor_id: doctorId, 
+      deleted: false,
+      $or: [{ student: 'None' }, { student: { $exists: false } }]
+    });
     const pendingLogs = await Patient.countDocuments({
       doctor_id: doctorId,
       student: { $ne: 'None' },
@@ -311,7 +315,8 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
     const approvedPatients = await Patient.countDocuments({
       doctor_id: doctorId,
       status: 'Approved',
-      deleted: false
+      deleted: false,
+      $or: [{ student: 'None' }, { student: { $exists: false } }]
     });
     const recoveryRate = totalPatients > 0 ? Math.round((approvedPatients / totalPatients) * 100) : 0;
     
@@ -319,7 +324,8 @@ app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
     const newPatientsThisMonth = await Patient.countDocuments({
       doctor_id: doctorId,
       created_at: { $gte: thirtyDaysAgo },
-      deleted: false
+      deleted: false,
+      $or: [{ student: 'None' }, { student: { $exists: false } }]
     });
 
     res.json({
@@ -343,7 +349,8 @@ app.get('/api/patients', authenticateToken, async (req, res) => {
   try {
     const patients = await Patient.find({
       doctor_id: req.user.doctorId,
-      deleted: false
+      deleted: false,
+      $or: [{ student: 'None' }, { student: { $exists: false } }]
     }).sort({ _id: 1 });
     res.json(patients);
   } catch (err) {
@@ -354,7 +361,7 @@ app.get('/api/patients', authenticateToken, async (req, res) => {
 
 // Create Patient
 app.post('/api/patients', authenticateToken, async (req, res) => {
-  const { name, age, gender, condition } = req.body;
+  const { name, age, gender, phone, condition, student, log_notes } = req.body;
   if (!name || !condition) {
     return res.status(400).json({ error: 'Name and condition are required' });
   }
@@ -363,6 +370,14 @@ app.post('/api/patients', authenticateToken, async (req, res) => {
     // Check if patient already exists
     const existing = await Patient.findOne({ name, doctor_id: req.user.doctorId });
     if (existing && !existing.deleted) {
+      if (student && student !== 'None') {
+        existing.student = student;
+        if (log_notes !== undefined) existing.log_notes = log_notes;
+        existing.status = 'Pending';
+        existing.condition = condition || existing.condition;
+        await existing.save();
+        return res.status(200).json(existing);
+      }
       return res.status(409).json({ error: 'Patient with this name already exists' });
     }
     if (existing && existing.deleted) {
@@ -370,6 +385,7 @@ app.post('/api/patients', authenticateToken, async (req, res) => {
       existing.deleted_at = null;
       existing.age = age || existing.age;
       existing.gender = gender || existing.gender;
+      existing.phone = phone || existing.phone;
       existing.condition = condition;
       await existing.save();
       return res.status(200).json(existing);
@@ -380,8 +396,10 @@ app.post('/api/patients', authenticateToken, async (req, res) => {
       name,
       age: age || null,
       gender: gender || null,
+      phone: phone || null,
       condition,
-      student: 'None',
+      student: student || 'None',
+      log_notes: log_notes || '',
       status: 'Pending',
       last_visit: 'New Patient'
     });
@@ -402,15 +420,17 @@ app.get('/api/patients/logs', authenticateToken, async (req, res) => {
       deleted: false
     });
     
-    // Attach default notes to matching topics
+    // Attach default notes to matching topics, otherwise use p.log_notes
     const logs = patients.map(p => {
-      let notes = 'Case report submitted. Patient responding well to parameters.';
-      if (p.name === 'Rahul Verma') {
-        notes = 'Patient showed 15 degrees improvement in knee flexion. Pain scale 4/10.';
-      } else if (p.name === 'Priya Sharma') {
-        notes = 'Applied TENS for 15 mins. Muscle spasms reduced significantly.';
-      } else if (p.name === 'Neha Gupta') {
-        notes = 'Patient successfully completed 3 sets of planks and bird-dogs.';
+      let notes = p.log_notes || 'Case report submitted. Patient responding well to parameters.';
+      if (!p.log_notes) {
+        if (p.name === 'Rahul Verma') {
+          notes = 'Patient showed 15 degrees improvement in knee flexion. Pain scale 4/10.';
+        } else if (p.name === 'Priya Sharma') {
+          notes = 'Applied TENS for 15 mins. Muscle spasms reduced significantly.';
+        } else if (p.name === 'Neha Gupta') {
+          notes = 'Patient successfully completed 3 sets of planks and bird-dogs.';
+        }
       }
       return {
         id: p.id,
@@ -455,6 +475,29 @@ app.put('/api/patients/logs/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Approve patient case error:', err);
     res.status(500).json({ error: 'Failed to approve case log' });
+  }
+});
+
+// Delete (Dismiss) Student Log Case (Updates Patients table)
+app.delete('/api/patients/logs/:id', authenticateToken, async (req, res) => {
+  try {
+    const patientRow = await Patient.findOne({
+      _id: req.params.id,
+      doctor_id: req.user.doctorId
+    });
+    
+    if (!patientRow) {
+      return res.status(404).json({ error: 'Patient case not found' });
+    }
+
+    patientRow.student = 'None';
+    patientRow.status = 'Pending';
+    await patientRow.save();
+
+    res.json({ success: true, message: 'Log dismissed successfully' });
+  } catch (err) {
+    console.error('Delete log error:', err);
+    res.status(500).json({ error: 'Failed to delete log' });
   }
 });
 

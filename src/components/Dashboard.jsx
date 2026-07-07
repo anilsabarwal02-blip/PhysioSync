@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [patients, setPatients] = useState(() => {
     const localPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
-    return localPatientsList.map(p => {
+    return localPatientsList.filter(p => !p.student || p.student === 'None').map(p => {
       const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
       const isApproved = p.status === 'Approved' || localStorage.getItem(`patient_status_${p.name}`) === 'Approved';
       return {
@@ -101,20 +101,88 @@ const Dashboard = () => {
   const [newGender, setNewGender] = useState('Male');
   const [newPhone, setNewPhone] = useState('');
   const [newCondition, setNewCondition] = useState('');
+  const [newStudent, setNewStudent] = useState('');
+  const [newNotes, setNewNotes] = useState('');
   const [formError, setFormError] = useState('');
-  const [activeListTab, setActiveListTab] = useState('patients'); // 'patients' | 'logs'
+  const [activeListTab, setActiveListTab] = useState(localStorage.getItem('activeListTab') || 'patients'); // 'patients' | 'logs'
+  useEffect(() => {
+    localStorage.setItem('activeListTab', activeListTab);
+  }, [activeListTab]);
   const [studentLogs, setStudentLogs] = useState([]);
+
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncOfflineData = async () => {
+    setIsSyncing(true);
+    let pCount = 0;
+    let aCount = 0;
+    
+    // Sync Patients
+    const localPatients = JSON.parse(localStorage.getItem('patients_list') || '[]');
+    for (const p of localPatients) {
+      if (p.id && p.id.toString().startsWith('temp-')) {
+        try {
+          await api.createPatient({
+            name: p.name,
+            age: p.age,
+            gender: p.gender,
+            phone: p.phone,
+            condition: p.condition,
+            student: p.student,
+            log_notes: p.log_notes
+          });
+          pCount++;
+        } catch (e) { console.error("Failed to sync patient:", p.name, e); }
+      }
+    }
+    
+    // Sync Appointments
+    const localApps = JSON.parse(localStorage.getItem('appointments_list') || '[]');
+    for (const a of localApps) {
+      if (a.id && a.id.toString().startsWith('a-')) {
+        try {
+          await api.createAppointment({
+            patient: a.patient || a.name,
+            type: a.type || 'Clinic Session',
+            treatment: a.treatment || a.desc,
+            time: a.time,
+            date: a.date,
+            duration: a.duration,
+            status: a.status,
+            notes: a.notes || 'Synced from offline mode'
+          });
+          aCount++;
+        } catch (e) { console.error("Failed to sync appointment:", a.patient, e); }
+      }
+    }
+    
+    // Clear old offline entries from local storage to prevent duplicate syncing
+    const newLocalPatients = localPatients.filter(p => !p.id || !p.id.toString().startsWith('temp-'));
+    localStorage.setItem('patients_list', JSON.stringify(newLocalPatients));
+    
+    const newLocalApps = localApps.filter(a => !a.id || !a.id.toString().startsWith('a-'));
+    localStorage.setItem('appointments_list', JSON.stringify(newLocalApps));
+    
+    setIsSyncing(false);
+    alert(`Successfully synced ${pCount} offline patients and ${aCount} offline appointments to the database! Refresh the page to see them.`);
+  };
 
   const handleAddPatient = async () => {
     setFormError('');
-    if (!newName.trim() || !newCondition.trim() || !newPhone.trim()) {
-      setFormError("Please fill in Name, Phone Number, and Condition.");
-      return;
-    }
-
-    if (newPhone.length !== 10) {
-      setFormError("Phone number must be exactly 10 digits.");
-      return;
+    if (activeListTab === 'logs') {
+      if (!newName.trim() || !newCondition.trim() || !newStudent.trim()) {
+        setFormError("Please fill in Patient Name, Student Name, and Condition.");
+        return;
+      }
+    } else {
+      if (!newName.trim() || !newCondition.trim() || !newPhone.trim()) {
+        setFormError("Please fill in Name, Phone Number, and Condition.");
+        return;
+      }
+      if (newPhone.length !== 10) {
+        setFormError("Phone number must be exactly 10 digits.");
+        return;
+      }
     }
 
     const tempId = 'temp-' + Date.now();
@@ -122,30 +190,43 @@ const Dashboard = () => {
       id: tempId,
       name: newName,
       age: newAge ? parseInt(newAge) : null,
-      gender: newGender,
-      phone: newPhone,
+      gender: activeListTab === 'logs' ? null : newGender,
+      phone: activeListTab === 'logs' ? null : newPhone,
       condition: newCondition,
-      student: 'None',
-      status: 'Pending',
+      student: activeListTab === 'logs' ? (newStudent || 'None') : 'None',
+      log_notes: activeListTab === 'logs' ? newNotes : '',
+      status: activeListTab === 'logs' && newStudent ? 'Pending' : 'Pending',
       last_visit: 'New Patient',
       created_at: new Date().toISOString(),
       deleted: false
     };
 
     // Optimistically update local UI state
-    const desc = `${newPatLocal.condition} • Waiting for Assessment`;
-    const mappedLocal = {
-      id: tempId,
-      name: newPatLocal.name,
-      phone: newPatLocal.phone,
-      desc,
-      status: newPatLocal.status,
-      statusClass: 'status-pending',
-      style: null
-    };
-
-    const updatedPatients = [mappedLocal, ...patients];
-    setPatients(updatedPatients);
+    if (activeListTab === 'logs') {
+      const newLogLocal = {
+        id: tempId,
+        student: newPatLocal.student,
+        patient: newPatLocal.name,
+        topic: newPatLocal.condition,
+        time: 'New Patient',
+        status: newPatLocal.status,
+        notes: newPatLocal.log_notes
+      };
+      setStudentLogs([newLogLocal, ...studentLogs]);
+      setStats(prev => ({ ...prev, pendingLogs: prev.pendingLogs + 1 }));
+    } else {
+      const desc = `${newPatLocal.condition} • Waiting for Assessment`;
+      const mappedLocal = {
+        id: tempId,
+        name: newPatLocal.name,
+        phone: newPatLocal.phone,
+        desc,
+        status: newPatLocal.status,
+        statusClass: 'status-pending',
+        style: null
+      };
+      setPatients([mappedLocal, ...patients]);
+    }
 
     // Save to local patients list cache
     const currentLocalPatientsList = JSON.parse(localStorage.getItem('patients_list') || '[]');
@@ -201,38 +282,49 @@ const Dashboard = () => {
         age: newPatLocal.age,
         gender: newPatLocal.gender,
         phone: newPatLocal.phone,
-        condition: newPatLocal.condition
+        condition: newPatLocal.condition,
+        student: newPatLocal.student,
+        log_notes: newPatLocal.log_notes
       });
+
+      // Also sync the auto-created appointment
+      try {
+        await api.createAppointment(newApp);
+      } catch (appErr) {
+        console.warn("[API] Failed to sync auto-created appointment:", appErr.message);
+      }
 
       // Update state and cache with actual database item
-      setPatients(prev => {
-        const desc = `${savedPatient.condition} • ${savedPatient.student && savedPatient.student !== 'None' ? 'Student: ' + savedPatient.student : 'Waiting for Assessment'}`;
-        const isApproved = savedPatient.status === 'Approved';
-        const finalMapped = {
-          id: savedPatient._id || savedPatient.id,
-          name: savedPatient.name,
-          phone: savedPatient.phone,
-          desc,
-          status: savedPatient.status,
-          statusClass: isApproved ? 'status-active' : 'status-pending',
-          style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
-        };
+      if (activeListTab === 'logs') {
+        setStudentLogs(prev => prev.map(p => p.id === tempId ? { ...p, id: savedPatient._id || savedPatient.id } : p));
+      } else {
+        setPatients(prev => {
+          const desc = `${savedPatient.condition} • ${savedPatient.student && savedPatient.student !== 'None' ? 'Student: ' + savedPatient.student : 'Waiting for Assessment'}`;
+          const isApproved = savedPatient.status === 'Approved';
+          const finalMapped = {
+            id: savedPatient._id || savedPatient.id,
+            name: savedPatient.name,
+            phone: savedPatient.phone,
+            desc,
+            status: savedPatient.status,
+            statusClass: isApproved ? 'status-active' : 'status-pending',
+            style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
+          };
+          
+          const exists = prev.some(p => p.id === tempId || p.id === finalMapped.id);
+          return exists 
+            ? prev.map(p => (p.id === tempId ? finalMapped : p))
+            : [finalMapped, ...prev];
+        });
+      }
         
-        const exists = prev.some(p => p.id === tempId || p.id === finalMapped.id);
-        const finalApps = exists 
-          ? prev.map(p => (p.id === tempId ? finalMapped : p))
-          : [finalMapped, ...prev];
-        
-        // Refresh local storage patients_list
-        const currentLocal = JSON.parse(localStorage.getItem('patients_list') || '[]');
-        const localExists = currentLocal.some(p => p.id === tempId || (p._id || p.id) === savedPatient.id);
-        const updatedLocal = localExists
-          ? currentLocal.map(p => (p.id === tempId ? savedPatient : p))
-          : [savedPatient, ...currentLocal];
-        localStorage.setItem('patients_list', JSON.stringify(updatedLocal));
-
-        return finalApps;
-      });
+      // Refresh local storage patients_list
+      const currentLocal = JSON.parse(localStorage.getItem('patients_list') || '[]');
+      const localExists = currentLocal.some(p => p.id === tempId || (p._id || p.id) === savedPatient.id);
+      const updatedLocal = localExists
+        ? currentLocal.map(p => (p.id === tempId ? savedPatient : p))
+        : [savedPatient, ...currentLocal];
+      localStorage.setItem('patients_list', JSON.stringify(updatedLocal));
 
       // Fetch dashboard stats from backend to get fresh counts
       try {
@@ -286,7 +378,7 @@ const Dashboard = () => {
     const fetchPatients = async () => {
       try {
         const backendPatients = await api.getPatients();
-        const mapped = backendPatients.map(p => {
+        const mapped = backendPatients.filter(p => !p.student || p.student === 'None').map(p => {
           const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
           const isApproved = p.status === 'Approved';
           return {
@@ -350,7 +442,7 @@ const Dashboard = () => {
 
       // Refresh patients and stats
       const backendPatients = await api.getPatients();
-      const mapped = backendPatients.map(p => {
+      const mapped = backendPatients.filter(p => !p.student || p.student === 'None').map(p => {
         const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
         const isApproved = p.status === 'Approved';
         return {
@@ -410,7 +502,7 @@ const Dashboard = () => {
           setNotifications(prev => [newNotif, ...prev]);
 
           // Map and update state
-          const mapped = updatedPatients.map(p => {
+          const mapped = updatedPatients.filter(p => !p.student || p.student === 'None').map(p => {
             const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
             const isApproved = p.status === 'Approved';
             return {
@@ -463,7 +555,7 @@ const Dashboard = () => {
       setStudentLogs(logsData);
 
       const backendPatients = await api.getPatients();
-      const mapped = backendPatients.map(p => {
+      const mapped = backendPatients.filter(p => !p.student || p.student === 'None').map(p => {
         const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
         const isApproved = p.status === 'Approved';
         return {
@@ -493,7 +585,7 @@ const Dashboard = () => {
         });
         localStorage.setItem('patients_list', JSON.stringify(updatedPatients));
         
-        const mapped = updatedPatients.map(p => {
+        const mapped = updatedPatients.filter(p => !p.student || p.student === 'None').map(p => {
           const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
           const isApproved = p.status === 'Approved';
           return {
@@ -535,6 +627,76 @@ const Dashboard = () => {
         alert(`Clinical case log for ${patientName} approved successfully (offline fallback).`);
       } else {
         alert(`Failed to approve case log: ${err.message}`);
+      }
+    }
+  };
+
+  const handleDeleteLog = async (id, patientName) => {
+    try {
+      await api.deleteLog(id);
+      
+      const newNotif = {
+        id: getUniqueId(),
+        text: `Clinical case log for ${patientName} has been dismissed.`,
+        time: "Just now",
+        read: false
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+
+      // Refresh list, patients, and stats
+      const logsData = await api.getLogs();
+      setStudentLogs(logsData);
+
+      const backendPatients = await api.getPatients();
+      const mapped = backendPatients.filter(p => !p.student || p.student === 'None').map(p => {
+        const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
+        const isApproved = p.status === 'Approved';
+        return {
+          id: p._id || p.id,
+          name: p.name,
+          desc,
+          status: p.status,
+          statusClass: isApproved ? 'status-active' : 'status-pending',
+          style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
+        };
+      });
+      setPatients(mapped);
+
+      const statsData = await api.getDashboardStats();
+      setStats(statsData);
+      
+    } catch (err) {
+      if (!getBackendStatus()) {
+        const localPatients = JSON.parse(localStorage.getItem('patients_list') || '[]');
+        const updatedPatients = localPatients.map(p => {
+          if (p.id === id || p._id === id) {
+            p.student = 'None';
+            p.status = 'Pending';
+          }
+          return p;
+        });
+        localStorage.setItem('patients_list', JSON.stringify(updatedPatients));
+        
+        setStudentLogs(prev => prev.filter(log => log.id !== id));
+        
+        const mapped = updatedPatients.filter(p => !p.student || p.student === 'None').map(p => {
+          const desc = `${p.condition} • ${p.student && p.student !== 'None' ? 'Student: ' + p.student : 'Waiting for Assessment'}`;
+          const isApproved = p.status === 'Approved';
+          return {
+            id: p.id || p._id,
+            name: p.name,
+            desc,
+            status: p.status,
+            statusClass: isApproved ? 'status-active' : 'status-pending',
+            style: isApproved ? { background: 'rgba(16, 185, 129, 0.2)', color: '#0d9488' } : null
+          };
+        });
+        setPatients(mapped);
+        
+        const pending = updatedPatients.filter(p => p.student && p.student !== 'None' && p.status === 'Pending').length;
+        setStats(prev => ({ ...prev, pendingLogs: pending }));
+      } else {
+        alert(`Failed to delete case log: ${err.message}`);
       }
     }
   };
@@ -817,22 +979,38 @@ const Dashboard = () => {
                 }}
               >
                 Student Logs 
-                {studentLogs.filter(l => l.status === 'Pending').length > 0 && (
-                  <span style={{ fontSize: '0.75rem', background: 'var(--danger)', color: 'white', padding: '2px 6px', borderRadius: '10px' }}>
-                    {studentLogs.filter(l => l.status === 'Pending').length}
-                  </span>
-                )}
               </h3>
             </div>
             
             {activeListTab === 'patients' && (
-              <button 
-                className="glass-button" 
-                onClick={() => setShowAddModal(true)} 
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.85rem', background: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)' }}
-              >
-                <Plus size={14} /> Add Patient
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  className="glass-button" 
+                  onClick={handleSyncOfflineData} 
+                  disabled={isSyncing}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.85rem', background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
+                >
+                  {isSyncing ? 'Syncing...' : 'Sync Offline'}
+                </button>
+                <button 
+                  className="glass-button" 
+                  onClick={() => setShowAddModal(true)} 
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.85rem', background: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)' }}
+                >
+                  <Plus size={14} /> Add Patient
+                </button>
+              </div>
+            )}
+            {activeListTab === 'logs' && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  className="glass-button" 
+                  onClick={() => setShowAddModal(true)} 
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.85rem', background: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)' }}
+                >
+                  <Plus size={14} /> Add Log
+                </button>
+              </div>
             )}
           </div>
           
@@ -891,15 +1069,26 @@ const Dashboard = () => {
                         </span>
                       </div>
                       
-                      {log.status === 'Pending' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {log.status === 'Pending' && (
+                          <button 
+                            onClick={() => handleApproveStudentCase(log.id, log.patient)}
+                            className="glass-button"
+                            style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'var(--primary)', color: 'white', display: 'flex', gap: '4px', alignItems: 'center' }}
+                          >
+                            <CheckCircle size={14} /> Approve
+                          </button>
+                        )}
                         <button 
-                          onClick={() => handleApproveStudentCase(log.id, log.patient)}
-                          className="glass-button"
-                          style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'var(--primary)', color: 'white', display: 'flex', gap: '4px', alignItems: 'center' }}
+                          onClick={() => handleDeleteLog(log.id, log.patient)}
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--danger)', opacity: 0.7, padding: '4px', borderRadius: '4px', transition: 'all 0.2s' }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+                          title="Dismiss Log"
                         >
-                          <CheckCircle size={14} /> Approve
+                          <Trash2 size={16} />
                         </button>
-                      )}
+                      </div>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', fontStyle: 'italic', background: 'rgba(255,255,255,0.4)', padding: '8px 12px', borderRadius: '8px' }}>
                       "{log.notes}"
@@ -968,7 +1157,9 @@ const Dashboard = () => {
             <button onClick={() => setShowAddModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
               <X size={20} />
             </button>
-            <h2 style={{ margin: '0 0 20px 0' }}>Add New Patient</h2>
+            <h2 style={{ margin: '0 0 20px 0' }}>
+              {activeListTab === 'logs' ? 'Add Student Log' : 'Add New Patient'}
+            </h2>
             {formError && <div style={{ color: 'var(--danger)', fontSize: '0.85rem', marginBottom: '16px', background: 'rgba(239, 68, 68, 0.1)', padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>{formError}</div>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
@@ -982,61 +1173,92 @@ const Dashboard = () => {
                   onChange={(e) => setNewName(e.target.value)}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Age</label>
+              {activeListTab === 'patients' && (
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Age</label>
+                    <input 
+                      type="number" 
+                      className="search-bar" 
+                      style={{ width: '100%', borderRadius: '8px' }} 
+                      placeholder="Age" 
+                      value={newAge}
+                      onChange={(e) => setNewAge(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Gender</label>
+                    <select 
+                      className="search-bar" 
+                      style={{ width: '100%', borderRadius: '8px', cursor: 'pointer' }}
+                      value={newGender}
+                      onChange={(e) => setNewGender(e.target.value)}
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+              {activeListTab === 'patients' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Phone Number</label>
                   <input 
-                    type="number" 
+                    type="tel" 
                     className="search-bar" 
                     style={{ width: '100%', borderRadius: '8px' }} 
-                    placeholder="Age" 
-                    value={newAge}
-                    onChange={(e) => setNewAge(e.target.value)}
+                    placeholder="Phone number"
+                    maxLength={10} 
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
                   />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Gender</label>
-                  <select 
+              )}
+              {activeListTab === 'logs' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Student Name</label>
+                  <input 
+                    type="text" 
                     className="search-bar" 
-                    style={{ width: '100%', borderRadius: '8px', cursor: 'pointer' }}
-                    value={newGender}
-                    onChange={(e) => setNewGender(e.target.value)}
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
+                    style={{ width: '100%', borderRadius: '8px' }} 
+                    placeholder="Attending student name" 
+                    value={newStudent}
+                    onChange={(e) => setNewStudent(e.target.value)}
+                  />
                 </div>
-              </div>
+              )}
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Phone Number</label>
-                <input 
-                  type="tel" 
-                  className="search-bar" 
-                  style={{ width: '100%', borderRadius: '8px' }} 
-                  placeholder="Phone number"
-                  maxLength={10} 
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Condition / Diagnosis</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>
+                  {activeListTab === 'logs' ? 'Condition / Topic' : 'Condition / Diagnosis'}
+                </label>
                 <input 
                   type="text" 
                   className="search-bar" 
                   style={{ width: '100%', borderRadius: '8px' }} 
-                  placeholder="e.g. ACL Tear, Frozen Shoulder" 
+                  placeholder={activeListTab === 'logs' ? 'e.g. Knee Flexion Improvement' : 'e.g. ACL Tear, Frozen Shoulder'} 
                   value={newCondition}
                   onChange={(e) => setNewCondition(e.target.value)}
                 />
               </div>
+              {activeListTab === 'logs' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', color: 'var(--text-muted)' }}>Log Details / Notes</label>
+                  <textarea 
+                    className="search-bar" 
+                    style={{ width: '100%', borderRadius: '8px', minHeight: '80px', resize: 'vertical' }} 
+                    placeholder="What treatment was provided?" 
+                    value={newNotes}
+                    onChange={(e) => setNewNotes(e.target.value)}
+                  />
+                </div>
+              )}
               <button 
                 className="glass-button" 
                 onClick={handleAddPatient} 
                 style={{ width: '100%', background: 'var(--primary)', color: 'white', border: 'none', padding: '12px', marginTop: '10px', fontWeight: '600', fontSize: '1rem' }}
               >
-                Save Patient
+                {activeListTab === 'logs' ? 'Save Log' : 'Save Patient'}
               </button>
             </div>
           </div>

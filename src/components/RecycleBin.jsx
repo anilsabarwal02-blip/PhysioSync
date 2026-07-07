@@ -9,12 +9,16 @@ const RecycleBin = () => {
   const [appointments, setAppointments] = useState(() => {
     return JSON.parse(localStorage.getItem('appointments_bin') || '[]');
   });
+  const [telemetry, setTelemetry] = useState(() => {
+    return JSON.parse(localStorage.getItem('telemetry_bin') || '[]');
+  });
   const [patients, setPatients] = useState(() => {
     return JSON.parse(localStorage.getItem('patients_bin') || '[]');
   });
   const [isLoading, setIsLoading] = useState(true);
   const [deletePatientModal, setDeletePatientModal] = useState(null); // { id, name }
   const [deleteAppointmentModal, setDeleteAppointmentModal] = useState(null); // { id, name }
+  const [deleteTelemetryModal, setDeleteTelemetryModal] = useState(null); // { id, exercise }
   const [emptyBinModal, setEmptyBinModal] = useState(false); // boolean
 
   const fetchDeletedItems = async () => {
@@ -23,8 +27,10 @@ const RecycleBin = () => {
       const data = await api.getRecycleBin();
       const apps = data.appointments || [];
       const pats = data.patients || [];
+      const telems = JSON.parse(localStorage.getItem('telemetry_bin') || '[]');
       setAppointments(apps);
       setPatients(pats);
+      setTelemetry(telems);
       localStorage.setItem('appointments_bin', JSON.stringify(apps));
       localStorage.setItem('patients_bin', JSON.stringify(pats));
     } catch (err) {
@@ -42,8 +48,10 @@ const RecycleBin = () => {
         if (active) {
           const apps = data.appointments || [];
           const pats = data.patients || [];
+          const telems = JSON.parse(localStorage.getItem('telemetry_bin') || '[]');
           setAppointments(apps);
           setPatients(pats);
+          setTelemetry(telems);
           localStorage.setItem('appointments_bin', JSON.stringify(apps));
           localStorage.setItem('patients_bin', JSON.stringify(pats));
         }
@@ -132,6 +140,23 @@ const RecycleBin = () => {
     }
   };
 
+  const handleRestoreTelemetry = (id, exercise) => {
+    const localTelemetryBin = JSON.parse(localStorage.getItem('telemetry_bin') || '[]');
+    const itemToRestore = localTelemetryBin.find(t => t.id === id);
+    if (itemToRestore) {
+      const updatedBin = localTelemetryBin.filter(t => t.id !== id);
+      localStorage.setItem('telemetry_bin', JSON.stringify(updatedBin));
+      
+      const activeTelemetry = JSON.parse(localStorage.getItem('telemetry_logs') || '[]');
+      delete itemToRestore.deleted_at;
+      activeTelemetry.push(itemToRestore);
+      localStorage.setItem('telemetry_logs', JSON.stringify(activeTelemetry));
+      
+      alert(`Telemetry log for ${exercise} restored successfully.`);
+      fetchDeletedItems();
+    }
+  };
+
   const executePermanentDeleteAppointment = async () => {
     if (!deleteAppointmentModal) return;
     const { id } = deleteAppointmentModal;
@@ -176,15 +201,27 @@ const RecycleBin = () => {
     }
   };
 
+  const executePermanentDeleteTelemetry = async () => {
+    if (!deleteTelemetryModal) return;
+    const { id } = deleteTelemetryModal;
+    setDeleteTelemetryModal(null);
+    const localTelemetryBin = JSON.parse(localStorage.getItem('telemetry_bin') || '[]');
+    const updatedBin = localTelemetryBin.filter(t => t.id !== id);
+    localStorage.setItem('telemetry_bin', JSON.stringify(updatedBin));
+    fetchDeletedItems();
+  };
+
   const executeEmptyBin = async () => {
     setEmptyBinModal(false);
     try {
       await api.emptyRecycleBin();
+      localStorage.setItem('telemetry_bin', '[]');
       fetchDeletedItems();
     } catch (err) {
       if (!getBackendStatus()) {
         localStorage.setItem('appointments_bin', '[]');
         localStorage.setItem('patients_bin', '[]');
+        localStorage.setItem('telemetry_bin', '[]');
         fetchDeletedItems();
       } else {
         alert(`Failed to empty Recycle Bin: ${err.message}`);
@@ -198,7 +235,7 @@ const RecycleBin = () => {
     return date.toLocaleString();
   };
 
-  const hasItems = appointments.length > 0 || patients.length > 0;
+  const hasItems = appointments.length > 0 || patients.length > 0 || telemetry.length > 0;
 
   return (
     <div className="main-content">
@@ -265,6 +302,21 @@ const RecycleBin = () => {
         >
           Appointments ({appointments.length})
         </button>
+        <button 
+          onClick={() => setActiveTab('telemetry')}
+          style={{
+            background: activeTab === 'telemetry' ? 'var(--primary)' : 'transparent',
+            color: activeTab === 'telemetry' ? 'white' : 'var(--text-muted)',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '20px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.3s'
+          }}
+        >
+          Telemetry Logs ({telemetry.length})
+        </button>
       </div>
 
       {isLoading ? (
@@ -318,7 +370,7 @@ const RecycleBin = () => {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === 'appointments' ? (
         <div className="glass-panel" style={{ padding: '24px' }}>
           {appointments.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -365,7 +417,62 @@ const RecycleBin = () => {
             </div>
           )}
         </div>
-      )}
+      ) : activeTab === 'telemetry' ? (
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          {telemetry.length > 0 ? (
+            <div className="custom-table-container">
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Exercise Name</th>
+                    <th>Deleted On</th>
+                    <th>Reps Completed</th>
+                    <th>Avg Heart Rate</th>
+                    <th>Peak EMG Voltage</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {telemetry.map((log) => (
+                    <tr key={log.id}>
+                      <td style={{ fontWeight: '600' }}>{log.exercise}</td>
+                      <td>{formatDate(log.deleted_at)}</td>
+                      <td>{log.reps} reps</td>
+                      <td>{log.hrAvg} BPM</td>
+                      <td>{log.maxEmg} mV</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button 
+                            className="glass-button" 
+                            title="Restore Log"
+                            onClick={() => handleRestoreTelemetry(log.id, log.exercise)}
+                            style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(14, 165, 233, 0.1)', color: 'var(--accent)', border: 'none' }}
+                          >
+                            <RotateCcw size={16} /> Restore
+                          </button>
+                          <button 
+                            className="glass-button" 
+                            title="Delete Permanently"
+                            onClick={() => setDeleteTelemetryModal({ id: log.id, exercise: log.exercise })}
+                            style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: 'none' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <Trash2 size={48} style={{ opacity: 0.2, margin: '0 auto 16px' }} />
+              <p style={{ fontSize: '1.1rem' }}>No deleted telemetry logs in the Recycle Bin.</p>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {/* Delete Patient Confirmation Modal */}
       {deletePatientModal && (
@@ -448,6 +555,36 @@ const RecycleBin = () => {
               <button 
                 className="glass-button" 
                 onClick={() => setEmptyBinModal(false)}
+                style={{ background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: '8px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Telemetry Confirmation Modal */}
+      {deleteTelemetryModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="glass-panel" style={{ width: '450px', padding: '24px', position: 'relative', textAlign: 'center', animation: 'scaleIn 0.3s ease' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <Trash2 size={22} /> Delete Telemetry Log Permanently
+            </h3>
+            <p style={{ color: 'var(--text-main)', marginBottom: '24px', fontSize: '0.95rem', lineHeight: '1.5' }}>
+              Are you sure you want to permanently delete the telemetry log for <strong>{deleteTelemetryModal.exercise}</strong>? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button 
+                className="glass-button" 
+                onClick={executePermanentDeleteTelemetry}
+                style={{ background: 'var(--danger)', color: 'white', border: 'none', padding: '10px 20px', fontWeight: '600', borderRadius: '8px' }}
+              >
+                Yes, Delete Permanently
+              </button>
+              <button 
+                className="glass-button" 
+                onClick={() => setDeleteTelemetryModal(null)}
                 style={{ background: 'var(--glass-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: '8px' }}
               >
                 Cancel

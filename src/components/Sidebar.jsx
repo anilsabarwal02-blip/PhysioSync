@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Calendar, Settings, Mic, BrainCircuit, Watch, MonitorSmartphone, LogOut, ChevronLeft, ChevronRight, Bone, Camera } from 'lucide-react';
+import { Activity, Calendar, Settings, Mic, BrainCircuit, Watch, LogOut, ChevronLeft, ChevronRight, Bone, Camera } from 'lucide-react';
 
 const Sidebar = ({ onLogout }) => {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);

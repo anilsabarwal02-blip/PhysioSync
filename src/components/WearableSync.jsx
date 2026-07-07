@@ -54,7 +54,6 @@ const WearableSync = () => {
   const emgBufferRef = useRef(Array(200).fill(0));
   
   // Simulation triggers
-  const contractionRef = useRef(false);
   const maxEmgRef = useRef(0);
   const animationFrameId = useRef(null);
 
@@ -178,16 +177,8 @@ const WearableSync = () => {
       emgBufferRef.current.shift();
       emgBufferRef.current.push(emgVal);
 
-      // Threshold based Rep Counter (Spike filter)
+      // Threshold based Rep Counter (Spike filter) - Removed for manual control
       const absEmg = Math.abs(emgVal);
-      if (absEmg > 30) {
-        if (!contractionRef.current) {
-          contractionRef.current = true;
-          setReps(r => r + 1);
-        }
-      } else if (absEmg < 15) {
-        contractionRef.current = false;
-      }
 
       // Live Peak EMG tracker
       if (absEmg > maxEmgRef.current) {
@@ -379,8 +370,15 @@ const WearableSync = () => {
     alert("Telemetry session data saved and synced to database successfully.");
   };
 
-  // Clear a saved log
+  // Clear a saved log and move to recycle bin
   const handleDeleteLog = (id) => {
+    const logToDelete = telemetryLogs.find(log => log.id === id);
+    if (logToDelete) {
+      const bin = JSON.parse(localStorage.getItem('telemetry_bin') || '[]');
+      logToDelete.deleted_at = new Date().toISOString();
+      bin.push(logToDelete);
+      localStorage.setItem('telemetry_bin', JSON.stringify(bin));
+    }
     setTelemetryLogs(prev => prev.filter(log => log.id !== id));
   };
 
@@ -699,8 +697,12 @@ const WearableSync = () => {
             {/* Rep counter and Metrics */}
             <div className="grid-1-1-1" style={{ marginTop: '10px' }}>
               <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rep Count (Auto Detected)</span>
-                <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: '4px 0 0 0', color: 'var(--primary)' }}>{reps}</p>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Rep Count (Manual)</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', margin: '4px 0 0 0' }}>
+                  <button onClick={() => setReps(r => Math.max(0, r - 1))} className="glass-button" style={{ padding: '4px 16px', fontSize: '1.5rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px' }}>-</button>
+                  <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: '0', color: 'var(--primary)', minWidth: '40px', textAlign: 'center' }}>{reps}</p>
+                  <button onClick={() => setReps(r => r + 1)} className="glass-button" style={{ padding: '4px 16px', fontSize: '1.5rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px' }}>+</button>
+                </div>
               </div>
               <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Session Time</span>
@@ -747,7 +749,7 @@ const WearableSync = () => {
                 <div className="glass-panel" style={{ display: 'flex', gap: '8px', padding: '10px', alignItems: 'center', borderLeft: '3px solid var(--accent)', background: 'rgba(14, 165, 233, 0.05)' }}>
                   <AlertCircle size={16} color="var(--accent)" />
                   <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Auto reps detection is threshold active. Maximize quad flexion to register reps.
+                    Auto reps detection disabled. Please use the + and - buttons to log reps manually.
                   </p>
                 </div>
               )}

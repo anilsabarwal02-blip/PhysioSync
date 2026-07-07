@@ -158,6 +158,12 @@ export const api = {
     });
   },
 
+  deleteLog: async (id) => {
+    return request(`/patients/logs/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
   // Protocols Services
   getProtocol: async (patientName) => {
     return request(`/protocols/${patientName}`);

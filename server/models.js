@@ -45,10 +45,12 @@ const PatientSchema = new mongoose.Schema({
   name: { type: String, required: true },
   age: { type: Number },
   gender: { type: String },
+  phone: { type: String },
   condition: { type: String, required: true },
   student: { type: String, default: 'None' },
   status: { type: String, default: 'Pending' },
   last_visit: { type: String },
+  log_notes: { type: String, default: '' },
   deleted: { type: Boolean, default: false },
   deleted_at: { type: Date }
 }, {

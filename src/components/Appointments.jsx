@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  Calendar as CalendarIcon, User, Video, Plus, Search, FileText, ChevronDown, ChevronUp, CheckCircle, X, Trash2,
+  Calendar as CalendarIcon, User, Plus, Search, FileText, ChevronDown, ChevronUp, CheckCircle, X, Trash2,
   Stethoscope, BedDouble, AlertTriangle, Home, Activity, HeartPulse, Smile 
 } from 'lucide-react';
 import { api, getBackendStatus } from '../utils/api';
@@ -176,13 +176,16 @@ const Appointments = () => {
   const filteredAppointments = appointments.filter(app => {
     const matchesSearch = app.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           app.treatment.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterType === 'All' || app.type === filterType;
+    const isOtherType = !APPOINTMENT_TYPES.includes(app.type) && app.type !== 'Other';
+    const matchesFilter = filterType === 'All' || 
+      (filterType === 'Other' ? (app.type === 'Other' || isOtherType) : app.type === filterType);
     return matchesSearch && matchesFilter;
   });
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'Confirmed': return 'var(--primary)';
+      case 'Completed': return '#10b981'; // Green color for completed
       case 'Pending': return '#f59e0b';
       case 'Cancelled': return 'var(--danger)';
       default: return 'var(--text-muted)';
@@ -240,7 +243,10 @@ const Appointments = () => {
             </div>
             <div className="stats-list-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
               {APPOINTMENT_TYPES.map(type => {
-                const count = appointments.filter(app => app.type === type).length;
+                const count = appointments.filter(app => {
+                  const isOtherType = !APPOINTMENT_TYPES.includes(app.type) && app.type !== 'Other';
+                  return type === 'Other' ? (app.type === 'Other' || isOtherType) : app.type === type;
+                }).length;
                 const isSelected = filterType === type;
                 
                 return (
@@ -376,9 +382,15 @@ const Appointments = () => {
                             <CheckCircle size={16} /> Confirm Appointment
                           </button>
                         )}
-                        <button className="glass-button" style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }}>
-                          Start Session
-                        </button>
+                        {app.status !== 'Completed' ? (
+                          <button onClick={(e) => handleStatusChange(app.id, 'Completed', e)} className="glass-button" style={{ padding: '8px 16px', background: 'var(--primary)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }}>
+                            <CheckCircle size={16} /> Complete
+                          </button>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontWeight: '600', padding: '8px 16px' }}>
+                            👍 Completed!
+                          </div>
+                        )}
                         <button className="glass-button" style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }}>
                           Reschedule
                         </button>

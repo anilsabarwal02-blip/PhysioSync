@@ -14,9 +14,8 @@ const Posture = () => {
   useEffect(() => {
     let active = true;
     if (isAnalyzing) {
-      setCameraError(null);
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setCameraError("Camera access is not supported by this browser.");
+        setTimeout(() => setCameraError("Camera access is not supported by this browser."), 0);
         return;
       }
       navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false })
@@ -145,7 +144,10 @@ const Posture = () => {
             <button 
               className="glass-button" 
               style={{ padding: '12px 32px', display: 'flex', gap: '10px', alignItems: 'center', background: isAnalyzing ? '#ef4444' : 'var(--primary)' }}
-              onClick={() => setIsAnalyzing(!isAnalyzing)}
+              onClick={() => {
+                if (!isAnalyzing) setCameraError(null);
+                setIsAnalyzing(!isAnalyzing);
+              }}
             >
               <Video size={20} /> {isAnalyzing ? 'Stop Analysis' : 'Start Live Analysis'}
             </button>
