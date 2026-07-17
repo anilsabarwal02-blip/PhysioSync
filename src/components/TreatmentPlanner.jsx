@@ -4,7 +4,7 @@ import { api, getBackendStatus } from '../utils/api';
 
 const CLINICAL_PROTOCOLS = {
   knee: {
-    summary: "8-Week Post-Op ACL Reconstruction & Knee Rehab Protocol",
+    summary: "Post-Op ACL Reconstruction & Knee Rehab Protocol",
     phases: [
       {
         phase: 'Weeks 1-2',
@@ -45,7 +45,7 @@ const CLINICAL_PROTOCOLS = {
     ]
   },
   shoulder: {
-    summary: "8-Week Rotator Cuff Tear Conservative Management Protocol",
+    summary: "Rotator Cuff Tear Conservative Management Protocol",
     phases: [
       {
         phase: 'Weeks 1-2',
@@ -83,7 +83,7 @@ const CLINICAL_PROTOCOLS = {
     ]
   },
   lumbar: {
-    summary: "8-Week Lumbar Disc Herniation & Sciatica Recovery Protocol",
+    summary: "Lumbar Disc Herniation & Sciatica Recovery Protocol",
     phases: [
       {
         phase: 'Weeks 1-2',
@@ -121,7 +121,7 @@ const CLINICAL_PROTOCOLS = {
     ]
   },
   cervical: {
-    summary: "8-Week Cervical Radiculopathy & Spondylosis Recovery Protocol",
+    summary: "Cervical Radiculopathy & Spondylosis Recovery Protocol",
     phases: [
       {
         phase: 'Weeks 1-2',
@@ -159,7 +159,7 @@ const CLINICAL_PROTOCOLS = {
     ]
   },
   general: {
-    summary: "8-Week General Musculoskeletal Rehabilitation Protocol",
+    summary: "General Musculoskeletal Rehabilitation Protocol",
     phases: [
       {
         phase: 'Weeks 1-2',
@@ -497,7 +497,7 @@ const TreatmentPlanner = () => {
       const patientAge = parseInt(age);
       if (patientAge < 18) {
         ageMessage = "👶 Pediatric/Adolescent Patient Assessment: Active growth plates. Avoid heavy resistive loading and high shear stress on joint complexes. Focus on biomechanical alignment, core stability, and light coordination-based exercises.";
-        customProtocol.summary = customProtocol.summary.replace("8-Week", "4-Week") + " (Pediatric Adaptation)";
+        customProtocol.summary = customProtocol.summary + " (Pediatric Adaptation)";
         
         customProtocol.phases = customProtocol.phases.slice(0, 2).map((phase, idx) => {
           const kidsExercises = phase.exercises.map(ex => ({
@@ -516,7 +516,7 @@ const TreatmentPlanner = () => {
         });
       } else if (patientAge >= 60) {
         ageMessage = "👵 Geriatric Patient Assessment: Reduced bone density and joint lubrication. Higher risk of joint stiffness and balance instability. Extended healing timeline required (12-Week Protocol). Focus on joint lubrication, low-impact stabilization, and fall prevention.";
-        customProtocol.summary = customProtocol.summary.replace("8-Week", "12-Week") + " (Geriatric Adaptation)";
+        customProtocol.summary = customProtocol.summary + " (Geriatric Adaptation)";
 
         customProtocol.phases = customProtocol.phases.map((phase, idx) => {
           const seniorExercises = phase.exercises.map(ex => ({
