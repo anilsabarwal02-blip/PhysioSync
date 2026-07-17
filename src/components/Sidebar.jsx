@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Calendar, Settings, Mic, BrainCircuit, Watch, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Activity, Calendar, Settings, Mic, BrainCircuit, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Sidebar = ({ onLogout }) => {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -73,10 +73,6 @@ const Sidebar = ({ onLogout }) => {
         <NavLink to="/treatment-planner" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <BrainCircuit size={20} />
           <span>AI Rx Planner</span>
-        </NavLink>
-        <NavLink to="/wearable-sync" onClick={handleNavClick} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Watch size={20} />
-          <span>Wearable Sync</span>
         </NavLink>
       </nav>
 

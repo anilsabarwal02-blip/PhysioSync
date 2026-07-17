@@ -9,7 +9,6 @@ import AIAssistant from './components/AIAssistant';
 import VoiceNotes from './components/VoiceNotes';
 
 import TreatmentPlanner from './components/TreatmentPlanner';
-import WearableSync from './components/WearableSync';
 import RecycleBin from './components/RecycleBin';
 import './App.css';
 import './index.css';
@@ -56,7 +55,6 @@ function App() {
           <Route path="/voice-notes" element={<VoiceNotes />} />
 
           <Route path="/treatment-planner" element={<TreatmentPlanner />} />
-          <Route path="/wearable-sync" element={<WearableSync />} />
           <Route path="/recycle-bin" element={<RecycleBin />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
