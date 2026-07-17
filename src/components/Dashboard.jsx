@@ -1171,6 +1171,7 @@ const Dashboard = () => {
                   placeholder="Enter name" 
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
+                  autoComplete="off"
                 />
               </div>
               {activeListTab === 'patients' && (
@@ -1212,6 +1213,7 @@ const Dashboard = () => {
                     maxLength={10} 
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
+                    autoComplete="off"
                   />
                 </div>
               )}
@@ -1225,6 +1227,7 @@ const Dashboard = () => {
                     placeholder="Attending student name" 
                     value={newStudent}
                     onChange={(e) => setNewStudent(e.target.value)}
+                    autoComplete="off"
                   />
                 </div>
               )}
@@ -1239,6 +1242,7 @@ const Dashboard = () => {
                   placeholder={activeListTab === 'logs' ? 'e.g. Knee Flexion Improvement' : 'e.g. ACL Tear, Frozen Shoulder'} 
                   value={newCondition}
                   onChange={(e) => setNewCondition(e.target.value)}
+                  autoComplete="off"
                 />
               </div>
               {activeListTab === 'logs' && (
