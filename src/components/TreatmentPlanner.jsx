@@ -506,7 +506,7 @@ const TreatmentPlanner = () => {
     if (age) {
       const patientAge = parseInt(age);
       if (patientAge < 18) {
-        ageMessage = "👶 Pediatric/Adolescent Patient Assessment: Active growth plates. Avoid heavy resistive loading and high shear stress on joint complexes. Focus on biomechanical alignment, core stability, and light coordination-based exercises.";
+        ageMessage = "🌱 Young Athlete & Pediatric Optimization: Tailored for growing bodies. Focusing on agility, core stability, and natural coordination to build a strong foundation for lifetime play and activity.";
         customProtocol.summary = customProtocol.summary + " (Pediatric Adaptation)";
         
         customProtocol.phases = customProtocol.phases.slice(0, 2).map((phase, idx) => {
@@ -525,7 +525,7 @@ const TreatmentPlanner = () => {
           };
         });
       } else if (patientAge >= 60) {
-        ageMessage = "👵 Geriatric Patient Assessment: Reduced bone density and joint lubrication. Higher risk of joint stiffness and balance instability. Extended healing timeline required (12-Week Protocol). Focus on joint lubrication, low-impact stabilization, and fall prevention.";
+        ageMessage = "🌟 Healthy Aging & Joint Longevity: Designed to promote joint lubrication, comfortable range of motion, and balance stability. Focusing on longevity, safety, and keeping you active and independent.";
         customProtocol.summary = customProtocol.summary + " (Geriatric Adaptation)";
 
         customProtocol.phases = customProtocol.phases.map((phase, idx) => {
@@ -554,11 +554,11 @@ const TreatmentPlanner = () => {
           customDiet.focus = `${customDiet.focus} Bone density support & joint longevity focus.`;
         }
       } else {
-        ageMessage = "🧑 Adult Patient Assessment: Musculoskeletal system is mature. Standard recovery timelines apply. Progressive loading can be targeted to patient RPE limits.";
+        ageMessage = "⚡ Peak Performance & Recovery: Tailored for mature muscles and bone structures. Focusing on progressive strength loading, functional range of motion, and returning to peak performance.";
         customProtocol.summary = customProtocol.summary + " (Standard Adult)";
       }
     } else {
-      ageMessage = "⚠️ Age not specified. Standard adult protocol defaults applied.";
+      ageMessage = "📋 General Wellness & Recovery: Tailored for general musculoskeletal health, smooth movement restoration, and gradual, safe progression.";
       customProtocol.summary = customProtocol.summary + " (Standard Adult)";
     }
 
@@ -1026,7 +1026,7 @@ const TreatmentPlanner = () => {
                     gap: '4px'
                   }}>
                     <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      📋 AI Age-Specific Clinical Assessment
+                      ✨ Personalized Recovery & Care Guidelines
                     </span>
                     <div>{ageAssessment}</div>
                   </div>
@@ -1477,7 +1477,7 @@ const TreatmentPlanner = () => {
               {/* Age Assessment printable block */}
               {ageAssessment && (
                 <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '12px 16px', borderRadius: '8px', fontSize: '0.75rem', color: '#0369a1', lineHeight: '1.4', marginTop: '12px' }}>
-                  <strong>Age-Specific Clinical Assessment:</strong> {ageAssessment}
+                  <strong>Personalized Recovery & Care Guidelines:</strong> {ageAssessment}
                 </div>
               )}
 
