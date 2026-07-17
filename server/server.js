@@ -772,6 +772,27 @@ app.post('/api/notes', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete Note
+app.delete('/api/notes/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const note = await EMRNote.findOneAndDelete({
+      _id: id,
+      doctor_id: req.user.doctorId
+    });
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+    const notes = await EMRNote.find({
+      doctor_id: req.user.doctorId
+    }).sort({ _id: -1 });
+    res.json(notes);
+  } catch (err) {
+    console.error('Delete note error:', err);
+    res.status(500).json({ error: 'Failed to delete note' });
+  }
+});
+
 
 // --- WEARABLE DATA ROUTES ---
 

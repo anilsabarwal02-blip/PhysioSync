@@ -188,6 +188,12 @@ export const api = {
     });
   },
 
+  deleteNote: async (id) => {
+    return request(`/notes/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
   // Wearables Services
   getWearables: async (patientName) => {
     return request(`/wearables/${patientName}`);

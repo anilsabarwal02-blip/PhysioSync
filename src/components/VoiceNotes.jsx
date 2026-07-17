@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Copy, Save, FileText } from 'lucide-react';
+import { Mic, MicOff, Copy, Save, FileText, Trash2 } from 'lucide-react';
 import { api } from '../utils/api';
 
 const VoiceNotes = () => {
@@ -194,6 +194,22 @@ const VoiceNotes = () => {
     }
   };
 
+  const handleDeleteNote = async (id) => {
+    // Optimistically update local UI and localStorage
+    const updatedNotes = savedNotes.filter(note => note.id !== id && note._id !== id);
+    setSavedNotes(updatedNotes);
+    localStorage.setItem('emr_notes_list', JSON.stringify(updatedNotes));
+
+    // Delete on backend
+    try {
+      const data = await api.deleteNote(id);
+      setSavedNotes(data);
+      localStorage.setItem('emr_notes_list', JSON.stringify(data));
+    } catch (err) {
+      console.warn("[API] Failed to delete note from backend. Error:", err.message);
+    }
+  };
+
   const copyToClipboard = () => {
     navigator.clipboard.writeText(transcript);
   };
@@ -305,10 +321,21 @@ const VoiceNotes = () => {
               <p style={{ textAlign: 'center', marginTop: '40px' }}>No notes saved yet.</p>
             ) : (
               savedNotes.map(note => (
-                <div key={note.id} style={{ background: 'var(--glass-bg)', padding: '16px', borderRadius: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div key={note.id || note._id} style={{ background: 'var(--glass-bg)', padding: '16px', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>{note.date}</span>
-                    <FileText size={16} color="var(--text-muted)" />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <FileText size={16} color="var(--text-muted)" />
+                      <button 
+                        onClick={() => handleDeleteNote(note.id || note._id)}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--danger)', opacity: 0.7, padding: '4px', borderRadius: '4px', transition: 'all 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+                        title="Delete Note"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                   <p style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{note.text}</p>
                 </div>
