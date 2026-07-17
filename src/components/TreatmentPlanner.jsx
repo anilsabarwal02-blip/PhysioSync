@@ -289,6 +289,7 @@ const CLINICAL_DIETS = {
 const TreatmentPlanner = () => {
   const [diagnosis, setDiagnosis] = useState('');
   const [age, setAge] = useState('');
+  const [ageAssessment, setAgeAssessment] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [plan, setPlan] = useState(null);
   
@@ -491,25 +492,67 @@ const TreatmentPlanner = () => {
     const customProtocol = JSON.parse(JSON.stringify(selectedProtocol));
     const customDiet = JSON.parse(JSON.stringify(selectedDiet));
 
+    let ageMessage = "";
     if (age) {
       const patientAge = parseInt(age);
-      if (patientAge >= 60) {
-        // Senior adjustments: lower the intensity, modify reps and sets
-        customProtocol.phases = customProtocol.phases.map(phase => ({
-          ...phase,
-          goals: [...phase.goals, "Improve balance and fall prevention"],
-          restrictions: `${phase.restrictions} Ensure movement range is comfortable; do not force through pain due to age considerations.`,
-          exercises: phase.exercises.map(ex => ({
+      if (patientAge < 18) {
+        ageMessage = "👶 Pediatric/Adolescent Patient Assessment: Active growth plates. Avoid heavy resistive loading and high shear stress on joint complexes. Focus on biomechanical alignment, core stability, and light coordination-based exercises.";
+        customProtocol.summary = customProtocol.summary.replace("8-Week", "4-Week") + " (Pediatric Adaptation)";
+        
+        customProtocol.phases = customProtocol.phases.slice(0, 2).map((phase, idx) => {
+          const kidsExercises = phase.exercises.map(ex => ({
+            ...ex,
+            rpe: '2-4 (Very Light)',
+            parameters: ex.parameters.replace('3 sets x 12 reps', '2 sets x 8 reps').replace('3 sets x 10 reps', '2 sets x 8 reps'),
+            rationale: `Pediatric adaptation: ${ex.rationale} Designed to protect active growth plates.`
+          }));
+          return {
+            ...phase,
+            phase: idx === 0 ? 'Weeks 1-2' : 'Weeks 3-4',
+            goals: [...phase.goals.filter(g => !g.toLowerCase().includes('vas')), "Keep exercise fun and interactive"],
+            restrictions: "No lifting heavy weights. Avoid high impact pivots.",
+            exercises: kidsExercises
+          };
+        });
+      } else if (patientAge >= 60) {
+        ageMessage = "👵 Geriatric Patient Assessment: Reduced bone density and joint lubrication. Higher risk of joint stiffness and balance instability. Extended healing timeline required (12-Week Protocol). Focus on joint lubrication, low-impact stabilization, and fall prevention.";
+        customProtocol.summary = customProtocol.summary.replace("8-Week", "12-Week") + " (Geriatric Adaptation)";
+
+        customProtocol.phases = customProtocol.phases.map((phase, idx) => {
+          const seniorExercises = phase.exercises.map(ex => ({
             ...ex,
             rpe: ex.rpe.replace('Hard', 'Moderate').replace('Medium', 'Light'),
-            parameters: ex.parameters.replace('3 sets x 12 reps', '3 sets x 8 reps').replace('3 sets x 10 reps', '2 sets x 8 reps')
-          }))
-        }));
+            parameters: ex.parameters.replace('3 sets x 12 reps', '3 sets x 8 reps').replace('3 sets x 10 reps', '2 sets x 8 reps'),
+            rationale: `Geriatric adaptation: ${ex.rationale} Focused on fall prevention and joint lubrication.`
+          }));
+          
+          let phaseWeeks = 'Weeks 1-2';
+          if (idx === 0) phaseWeeks = 'Weeks 1-3';
+          else if (idx === 1) phaseWeeks = 'Weeks 4-6';
+          else if (idx === 2) phaseWeeks = 'Weeks 7-12';
+
+          return {
+            ...phase,
+            phase: phaseWeeks,
+            goals: [...phase.goals, "Improve static/dynamic standing balance"],
+            restrictions: `${phase.restrictions} Ensure environment is free of fall hazards. Do not push through pain.`,
+            exercises: seniorExercises
+          };
+        });
+
         if (customDiet && customDiet.focus) {
           customDiet.focus = `${customDiet.focus} Bone density support & joint longevity focus.`;
         }
+      } else {
+        ageMessage = "🧑 Adult Patient Assessment: Musculoskeletal system is mature. Standard recovery timelines apply. Progressive loading can be targeted to patient RPE limits.";
+        customProtocol.summary = customProtocol.summary + " (Standard Adult)";
       }
+    } else {
+      ageMessage = "⚠️ Age not specified. Standard adult protocol defaults applied.";
+      customProtocol.summary = customProtocol.summary + " (Standard Adult)";
     }
+
+    setAgeAssessment(ageMessage);
 
     setTimeout(async () => {
       try {
@@ -945,6 +988,27 @@ const TreatmentPlanner = () => {
                     <span>10: Intolerable Pain</span>
                   </div>
                 </div>
+
+                {/* Age Clinical Assessment Callout */}
+                {ageAssessment && (
+                  <div style={{
+                    background: 'rgba(2, 132, 199, 0.05)',
+                    border: '1px solid rgba(2, 132, 199, 0.15)',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-main)',
+                    lineHeight: '1.5',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      📋 AI Age-Specific Clinical Assessment
+                    </span>
+                    <div>{ageAssessment}</div>
+                  </div>
+                )}
 
                 {/* Protocol Summary Header Banner */}
                 <div style={{ 
@@ -1387,6 +1451,13 @@ const TreatmentPlanner = () => {
                   })()}
                 </div>
               </div>
+
+              {/* Age Assessment printable block */}
+              {ageAssessment && (
+                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '12px 16px', borderRadius: '8px', fontSize: '0.75rem', color: '#0369a1', lineHeight: '1.4', marginTop: '12px' }}>
+                  <strong>Age-Specific Clinical Assessment:</strong> {ageAssessment}
+                </div>
+              )}
 
               {/* Phased Report Details */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
