@@ -66,7 +66,7 @@ const authenticateToken = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash('password123', 10);
     if (!existing) {
       await Doctor.create({ doctor_id: defaultDoctor.doctorId, name: defaultDoctor.name, password: hashedPassword });
-      await seedDoctorData(defaultDoctor.doctorId);
+      // await seedDoctorData(defaultDoctor.doctorId);
     } else if (existing.password === '' || existing.password === null) {
       existing.password = hashedPassword;
       await existing.save();
@@ -127,7 +127,7 @@ app.post('/api/auth/register', async (req, res) => {
     });
 
     // Seed default workspace data for this newly registered doctor in MongoDB
-    await seedDoctorData(doctorId);
+    // await seedDoctorData(doctorId);
 
     res.status(201).json({ 
       message: 'Doctor registered successfully', 
@@ -169,7 +169,7 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     // Seed default collections if missing
-    await seedDoctorData(doctor.doctor_id);
+    // await seedDoctorData(doctor.doctor_id);
 
     res.json({
       token,
