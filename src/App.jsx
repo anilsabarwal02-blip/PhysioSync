@@ -15,12 +15,7 @@ import './index.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Auto-login Dr. Sharma as default to bypass the login screen
-    const defaultUser = { doctorId: 'DR-DEFAULT', name: 'Dr. Sharma', role: 'Head Doctor' };
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('currentUser', JSON.stringify(defaultUser));
-    localStorage.setItem('token', 'mock-default-token');
-    return true;
+    return localStorage.getItem('isAuthenticated') === 'true';
   });
   const [isAIOpen, setIsAIOpen] = useState(false);
 
