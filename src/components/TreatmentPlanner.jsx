@@ -290,6 +290,7 @@ const TreatmentPlanner = () => {
   const [diagnosis, setDiagnosis] = useState('');
   const [age, setAge] = useState('');
   const [ageAssessment, setAgeAssessment] = useState('');
+  const [showAgeError, setShowAgeError] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [plan, setPlan] = useState(null);
   
@@ -462,7 +463,16 @@ const TreatmentPlanner = () => {
 
   const generatePlan = (e) => {
     e.preventDefault();
-    if (!diagnosis) return;
+    if (!diagnosis) {
+      showToast("Error: Diagnosis/Symptoms are required.");
+      return;
+    }
+    if (!age) {
+      setShowAgeError(true);
+      showToast("Error: Patient age must be specified to generate an appropriate protocol.");
+      return;
+    }
+    setShowAgeError(false);
     setIsGenerating(true);
 
     const text = diagnosis.toLowerCase();
@@ -908,16 +918,28 @@ const TreatmentPlanner = () => {
                   />
                 </div>
                 <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Age (Years)</label>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: showAgeError ? 'var(--danger)' : 'var(--text-muted)' }}>Age (Years)</label>
                   <input
                     type="number"
                     className="search-bar"
-                    style={{ width: '100%', height: '100px', borderRadius: '12px', padding: '16px', fontSize: '1.4rem', textAlign: 'center' }}
+                    style={{ 
+                      width: '100%', 
+                      height: '100px', 
+                      borderRadius: '12px', 
+                      padding: '16px', 
+                      fontSize: '1.4rem', 
+                      textAlign: 'center',
+                      border: showAgeError ? '2px solid var(--danger)' : '1px solid var(--border)',
+                      boxShadow: showAgeError ? '0 0 0 2px rgba(239, 68, 68, 0.15)' : 'none'
+                    }}
                     placeholder="Age"
                     min="1"
                     max="120"
                     value={age}
-                    onChange={(e) => setAge(e.target.value)}
+                    onChange={(e) => {
+                      setAge(e.target.value);
+                      if (e.target.value) setShowAgeError(false);
+                    }}
                   />
                 </div>
               </div>
