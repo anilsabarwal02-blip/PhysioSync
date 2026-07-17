@@ -524,6 +524,26 @@ const TreatmentPlanner = () => {
             exercises: kidsExercises
           };
         });
+
+        if (customDiet) {
+          customDiet.summary = customDiet.summary.replace("Diet", "Pediatric Growth & Healing Diet");
+          customDiet.calories = 1600;
+          customDiet.macros = { protein: 80, carbs: 200, fat: 55 };
+          customDiet.focus = "Bone growth support, tissue repair, high calcium intake, and energy for growing bodies.";
+          
+          const pFoods = ["Milk & Curd (Calcium)", "Paneer / Paneer Bhurji", "Boiled Eggs / Egg Curry", "Oranges / Amla (Vitamin C)", "Bananas & Apples (Energy)", "Almonds (soaked)", "Roasted Makhana"];
+          customDiet.recommendedFoods = {
+            "Non-Veg": pFoods,
+            "Veg": pFoods.filter(f => !f.includes("Egg") && !f.includes("Chicken") && !f.includes("Fish")),
+            "Vegan": ["Soya Milk / Almond Milk", "Soya Chunks", "Dal & Rice Khichdi", "Oranges / Amla (Vitamin C)", "Bananas & Apples (Energy)", "Almonds", "Roasted Makhana"]
+          };
+          customDiet.avoidFoods = ["Carbonated sodas & sugary fizzy drinks (depletes calcium)", "Packaged bakery items (biscuits, cakes)", "Excessive processed spices"];
+          customDiet.supplements = [
+            { name: "Calcium & Vitamin D3 (Pediatric Syrup)", dose: "1 tsp daily", timing: "With breakfast", rationale: "Essential for bone density development and active skeletal growth." },
+            { name: "Vitamin C (Amla Extract Syrup)", dose: "250mg daily", timing: "After lunch", rationale: "Promotes natural immunity and ligament tissue healing." }
+          ];
+        }
+
       } else if (patientAge >= 60) {
         ageMessage = "🌟 Healthy Aging & Joint Longevity: Designed to promote joint lubrication, comfortable range of motion, and balance stability. Focusing on longevity, safety, and keeping you active and independent.";
         customProtocol.summary = customProtocol.summary + " (Geriatric Adaptation)";
@@ -550,9 +570,26 @@ const TreatmentPlanner = () => {
           };
         });
 
-        if (customDiet && customDiet.focus) {
-          customDiet.focus = `${customDiet.focus} Bone density support & joint longevity focus.`;
+        if (customDiet) {
+          customDiet.summary = customDiet.summary.replace("Diet", "Senior Joint Longevity & Muscle Care Diet");
+          customDiet.calories = 1500;
+          customDiet.macros = { protein: 90, carbs: 180, fat: 50 };
+          customDiet.focus = "Muscle mass preservation (sarcopenia prevention), bone strength support, joint comfort, and easy digestion.";
+          
+          const sFoods = ["Soft Paneer / Curd (Dahi)", "Khichdi & Dalia (Easy to chew)", "Chaas (Buttermilk)", "Stewed Apples / Papaya", "Turmeric Milk (Haldi Doodh)", "Soaked Almonds", "Spinach Soup (Palak)"];
+          customDiet.recommendedFoods = {
+            "Non-Veg": ["Chicken Broth / Soft boiled eggs", "Soft Fish Curry", "Soft Paneer / Curd", "Stewed Apples / Papaya", "Turmeric Milk", "Soaked Almonds", "Spinach Soup"],
+            "Veg": sFoods,
+            "Vegan": ["Soy Milk / Warm Almond Milk", "Soya Chunks (well cooked)", "Khichdi & Dalia", "Stewed Apples / Papaya", "Ginger Tea", "Soaked Almonds", "Spinach Soup"]
+          };
+          customDiet.avoidFoods = ["Hard or chewy foods (causes strain)", "Heavy deep-fried foods (slows digestion)", "Excess salt & refined sugar"];
+          customDiet.supplements = [
+            { name: "Vitamin D3 (Calcirol)", dose: "60k IU weekly", timing: "With milk after breakfast", rationale: "Maintains skeletal calcium absorption and spinal bone mineral density." },
+            { name: "Magnesium Glycinate", dose: "250mg daily", timing: "30 mins before bed", rationale: "Reduces nocturnal muscle cramps and promotes sound sleep." },
+            { name: "Curcumin & Ginger Extract", dose: "500mg daily", timing: "With dinner", rationale: "Natural anti-inflammatory that helps reduce osteoarthritis and joint stiffness." }
+          ];
         }
+
       } else {
         ageMessage = "⚡ Peak Performance & Recovery: Tailored for mature muscles and bone structures. Focusing on progressive strength loading, functional range of motion, and returning to peak performance.";
         customProtocol.summary = customProtocol.summary + " (Standard Adult)";
