@@ -71,6 +71,7 @@ const ProtocolSchema = new mongoose.Schema({
   patient_name: { type: String, required: true },
   pain_score: { type: Number, default: 4 },
   exercises: { type: mongoose.Schema.Types.Mixed, required: true },
+  diet: { type: mongoose.Schema.Types.Mixed },
   rpe_exertion: { type: Number, default: 4 },
   biomechanical_rationale: { type: Number, default: 1 },
   phase_checklist: { type: mongoose.Schema.Types.Mixed, default: [] },

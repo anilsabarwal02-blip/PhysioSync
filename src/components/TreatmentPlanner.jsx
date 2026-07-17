@@ -313,6 +313,8 @@ const TreatmentPlanner = () => {
   const [toastMessage, setToastMessage] = useState(null);
   const [showModifyModal, setShowModifyModal] = useState(false);
   const [tempPhases, setTempPhases] = useState([]);
+  const [tempDiet, setTempDiet] = useState(null);
+  const [activeModalTab, setActiveModalTab] = useState('exercises');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const showToast = (msg) => {
@@ -325,11 +327,97 @@ const TreatmentPlanner = () => {
   const handleOpenModifyModal = () => {
     if (!plan) return;
     setTempPhases(JSON.parse(JSON.stringify(plan.phases)));
+    setTempDiet(plan.diet ? JSON.parse(JSON.stringify(plan.diet)) : null);
+    setActiveModalTab('exercises');
     setShowModifyModal(true);
   };
 
+  const handleUpdateTempDietField = (field, value) => {
+    setTempDiet(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
+  };
+
+  const handleUpdateTempDietMacros = (macro, value) => {
+    setTempDiet(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        macros: {
+          ...prev.macros,
+          [macro]: parseInt(value) || 0
+        }
+      };
+    });
+  };
+
+  const handleUpdateTempDietFoods = (category, value) => {
+    setTempDiet(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        recommendedFoods: {
+          ...prev.recommendedFoods,
+          [category]: value.split(',').map(s => s.trim()).filter(Boolean)
+        }
+      };
+    });
+  };
+
+  const handleUpdateTempDietAvoid = (value) => {
+    setTempDiet(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        avoidFoods: value.split(',').map(s => s.trim()).filter(Boolean)
+      };
+    });
+  };
+
+  const handleUpdateTempSupplement = (sIdx, field, value) => {
+    setTempDiet(prev => {
+      if (!prev || !prev.supplements) return prev;
+      const updatedSupps = [...prev.supplements];
+      updatedSupps[sIdx] = {
+        ...updatedSupps[sIdx],
+        [field]: value
+      };
+      return {
+        ...prev,
+        supplements: updatedSupps
+      };
+    });
+  };
+
+  const handleAddTempSupplement = () => {
+    setTempDiet(prev => {
+      if (!prev) return prev;
+      const updatedSupps = prev.supplements ? [...prev.supplements] : [];
+      updatedSupps.push({ name: 'New Supplement', dose: '1 tab daily', timing: 'With breakfast', rationale: 'Supports recovery.' });
+      return {
+        ...prev,
+        supplements: updatedSupps
+      };
+    });
+  };
+
+  const handleRemoveTempSupplement = (sIdx) => {
+    setTempDiet(prev => {
+      if (!prev || !prev.supplements) return prev;
+      const updatedSupps = prev.supplements.filter((_, i) => i !== sIdx);
+      return {
+        ...prev,
+        supplements: updatedSupps
+      };
+    });
+  };
+
   const handleSaveModifiedProtocol = async () => {
-    const updatedPlan = { ...plan, phases: tempPhases };
+    const updatedPlan = { ...plan, phases: tempPhases, diet: tempDiet };
     setPlan(updatedPlan);
     setIsApproved(false);
 
@@ -350,6 +438,7 @@ const TreatmentPlanner = () => {
         patient_name: patientName,
         pain_score: painScore,
         exercises: tempPhases,
+        diet: tempDiet,
         rpe_exertion: painScore,
         biomechanical_rationale: showRationales ? 1 : 0,
         phase_checklist: completedGoals,
@@ -607,7 +696,7 @@ const TreatmentPlanner = () => {
         setPlan({
           summary: customProtocol.summary,
           phases: existingProto.exercises,
-          diet: customDiet
+          diet: existingProto.diet || customDiet
         });
         setRefId(`PS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
         setPainScore(existingProto.pain_score);
@@ -1684,111 +1773,341 @@ const TreatmentPlanner = () => {
               </button>
             </div>
 
+            {/* Modal Tab Bar */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', gap: '16px', marginBottom: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setActiveModalTab('exercises')}
+                style={{
+                  padding: '8px 16px',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  color: activeModalTab === 'exercises' ? 'var(--primary)' : 'var(--text-muted)',
+                  borderBottom: activeModalTab === 'exercises' ? '2px solid var(--primary)' : '2px solid transparent'
+                }}
+              >
+                🏃 Modify Exercise Protocol
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveModalTab('diet')}
+                style={{
+                  padding: '8px 16px',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  color: activeModalTab === 'diet' ? 'var(--primary)' : 'var(--text-muted)',
+                  borderBottom: activeModalTab === 'diet' ? '2px solid var(--primary)' : '2px solid transparent'
+                }}
+              >
+                🥗 Modify Diet & Nutrition Chart
+              </button>
+            </div>
+
             {/* Modal Scrollable Body */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '4px' }}>
-              {tempPhases.map((phase, pIdx) => (
-                <div key={pIdx} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
-                    <div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--primary)' }}>{phase.phase}</span>
-                      <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#0f172a' }}>{phase.title}</h4>
+              {activeModalTab === 'exercises' ? (
+                tempPhases.map((phase, pIdx) => (
+                  <div key={pIdx} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--primary)' }}>{phase.phase}</span>
+                        <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#0f172a' }}>{phase.title}</h4>
+                      </div>
+                      <button 
+                        type="button"
+                        className="glass-button"
+                        style={{ padding: '4px 10px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        onClick={() => handleAddTempExercise(pIdx)}
+                      >
+                        <Plus size={12} /> Add Exercise
+                      </button>
                     </div>
-                    <button 
-                      className="glass-button"
-                      style={{ padding: '4px 10px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      onClick={() => handleAddTempExercise(pIdx)}
-                    >
-                      <Plus size={12} /> Add Exercise
-                    </button>
-                  </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {phase.exercises.map((ex, eIdx) => (
-                      <div key={eIdx} style={{ background: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {/* Name and Params row */}
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                          <div style={{ flex: 3, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Exercise Name</label>
-                            <input 
-                              type="text" 
-                              value={ex.name} 
-                              onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'name', e.target.value)}
-                              style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
-                            />
-                          </div>
-                          <div style={{ flex: 3, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Parameters</label>
-                            <input 
-                              type="text" 
-                              value={ex.parameters} 
-                              onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'parameters', e.target.value)}
-                              style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
-                            />
-                          </div>
-                          <button 
-                            onClick={() => handleRemoveTempExercise(pIdx, eIdx)}
-                            style={{ 
-                              background: 'none', 
-                              border: 'none', 
-                              cursor: 'pointer', 
-                              color: 'var(--danger)', 
-                              padding: '6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              alignSelf: 'center',
-                              marginBottom: '2px'
-                            }}
-                            title="Delete Exercise"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-
-                        {/* RPE and Load row */}
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>RPE Target</label>
-                            <input 
-                              type="text" 
-                              value={ex.rpe} 
-                              onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'rpe', e.target.value)}
-                              style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
-                            />
-                          </div>
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Tissue Load</label>
-                            <select 
-                              value={ex.load} 
-                              onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'load', e.target.value)}
-                              style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', height: '31px' }}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {phase.exercises.map((ex, eIdx) => (
+                        <div key={eIdx} style={{ background: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {/* Name and Params row */}
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                            <div style={{ flex: 3, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Exercise Name</label>
+                              <input 
+                                type="text" 
+                                value={ex.name} 
+                                onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'name', e.target.value)}
+                                style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
+                              />
+                            </div>
+                            <div style={{ flex: 3, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Parameters</label>
+                              <input 
+                                type="text" 
+                                value={ex.parameters} 
+                                onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'parameters', e.target.value)}
+                                style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
+                              />
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={() => handleRemoveTempExercise(pIdx, eIdx)}
+                              style={{ 
+                                background: 'none', 
+                                border: 'none', 
+                                cursor: 'pointer', 
+                                color: 'var(--danger)', 
+                                padding: '6px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                alignSelf: 'center',
+                                marginBottom: '2px'
+                              }}
+                              title="Delete Exercise"
                             >
-                              <option value="Low">Low</option>
-                              <option value="Moderate">Moderate</option>
-                              <option value="High">High</option>
-                            </select>
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+
+                          {/* RPE and Load row */}
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>RPE Target</label>
+                              <input 
+                                type="text" 
+                                value={ex.rpe} 
+                                onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'rpe', e.target.value)}
+                                style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
+                              />
+                            </div>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Tissue Load</label>
+                              <select 
+                                value={ex.load} 
+                                onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'load', e.target.value)}
+                                style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', height: '31px' }}
+                              >
+                                <option value="Low">Low</option>
+                                <option value="Moderate">Moderate</option>
+                                <option value="High">High</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Rationale row */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Physiological Rationale</label>
+                            <textarea 
+                              value={ex.rationale} 
+                              onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'rationale', e.target.value)}
+                              style={{ width: '100%', height: '50px', resize: 'none', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', fontFamily: 'inherit' }}
+                            />
                           </div>
                         </div>
-
-                        {/* Rationale row */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Physiological Rationale</label>
-                          <textarea 
-                            value={ex.rationale} 
-                            onChange={(e) => handleUpdateTempExercise(pIdx, eIdx, 'rationale', e.target.value)}
-                            style={{ width: '100%', height: '50px', resize: 'none', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', fontFamily: 'inherit' }}
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                tempDiet && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* General info row */}
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>Diet Summary & Focus</h4>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Calorie Target (kcal)</label>
+                          <input 
+                            type="number" 
+                            value={tempDiet.calories || 0}
+                            onChange={(e) => handleUpdateTempDietField('calories', parseInt(e.target.value) || 0)}
+                            style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Protein (g)</label>
+                          <input 
+                            type="number" 
+                            value={tempDiet.macros?.protein || 0}
+                            onChange={(e) => handleUpdateTempDietMacros('protein', e.target.value)}
+                            style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Carbs (g)</label>
+                          <input 
+                            type="number" 
+                            value={tempDiet.macros?.carbs || 0}
+                            onChange={(e) => handleUpdateTempDietMacros('carbs', e.target.value)}
+                            style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Fat (g)</label>
+                          <input 
+                            type="number" 
+                            value={tempDiet.macros?.fat || 0}
+                            onChange={(e) => handleUpdateTempDietMacros('fat', e.target.value)}
+                            style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
                           />
                         </div>
                       </div>
-                    ))}
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Hydration Target</label>
+                        <input 
+                          type="text" 
+                          value={tempDiet.hydration || ''}
+                          onChange={(e) => handleUpdateTempDietField('hydration', e.target.value)}
+                          style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', width: '100%' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Clinical Focus</label>
+                        <textarea 
+                          value={tempDiet.focus || ''}
+                          onChange={(e) => handleUpdateTempDietField('focus', e.target.value)}
+                          style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', height: '60px', resize: 'none', fontFamily: 'inherit' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Food Items section */}
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>Recommended Foods (Comma-Separated)</h4>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Veg Foods</label>
+                          <textarea 
+                            value={tempDiet.recommendedFoods?.["Veg"]?.join(', ') || ''}
+                            onChange={(e) => handleUpdateTempDietFoods('Veg', e.target.value)}
+                            style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', height: '60px', resize: 'none', fontFamily: 'inherit' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Non-Veg Foods</label>
+                          <textarea 
+                            value={tempDiet.recommendedFoods?.["Non-Veg"]?.join(', ') || ''}
+                            onChange={(e) => handleUpdateTempDietFoods('Non-Veg', e.target.value)}
+                            style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', height: '60px', resize: 'none', fontFamily: 'inherit' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Vegan Foods</label>
+                          <textarea 
+                            value={tempDiet.recommendedFoods?.["Vegan"]?.join(', ') || ''}
+                            onChange={(e) => handleUpdateTempDietFoods('Vegan', e.target.value)}
+                            style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', height: '60px', resize: 'none', fontFamily: 'inherit' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Foods to Avoid</label>
+                          <textarea 
+                            value={tempDiet.avoidFoods?.join(', ') || ''}
+                            onChange={(e) => handleUpdateTempDietAvoid(e.target.value)}
+                            style={{ padding: '6px 10px', fontSize: '0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', height: '60px', resize: 'none', fontFamily: 'inherit' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Supplements Section */}
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a' }}>Daily Supplements</h4>
+                        <button 
+                          type="button"
+                          className="glass-button"
+                          style={{ padding: '4px 10px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          onClick={handleAddTempSupplement}
+                        >
+                          <Plus size={12} /> Add Supplement
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {tempDiet.supplements?.map((supp, sIdx) => (
+                          <div key={sIdx} style={{ background: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                              <div style={{ flex: 3, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Supplement Name</label>
+                                <input 
+                                  type="text" 
+                                  value={supp.name} 
+                                  onChange={(e) => handleUpdateTempSupplement(sIdx, 'name', e.target.value)}
+                                  style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
+                                />
+                              </div>
+                              <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Dosage</label>
+                                <input 
+                                  type="text" 
+                                  value={supp.dose} 
+                                  onChange={(e) => handleUpdateTempSupplement(sIdx, 'dose', e.target.value)}
+                                  style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
+                                />
+                              </div>
+                              <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Timing</label>
+                                <input 
+                                  type="text" 
+                                  value={supp.timing} 
+                                  onChange={(e) => handleUpdateTempSupplement(sIdx, 'timing', e.target.value)}
+                                  style={{ width: '100%', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000' }}
+                                />
+                              </div>
+                              <button 
+                                type="button"
+                                onClick={() => handleRemoveTempSupplement(sIdx)}
+                                style={{ 
+                                  background: 'none', 
+                                  border: 'none', 
+                                  cursor: 'pointer', 
+                                  color: 'var(--danger)', 
+                                  padding: '6px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  alignSelf: 'center',
+                                  marginBottom: '2px'
+                                }}
+                                title="Delete Supplement"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <label style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Physiological Rationale</label>
+                              <textarea 
+                                value={supp.rationale} 
+                                onChange={(e) => handleUpdateTempSupplement(sIdx, 'rationale', e.target.value)}
+                                style={{ width: '100%', height: '40px', resize: 'none', padding: '6px 10px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#000000', fontFamily: 'inherit' }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
 
             {/* Modal Footer */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
               <button 
+                type="button"
                 className="glass-button" 
                 style={{ background: '#e2e8f0', color: '#0f172a', border: '1px solid #cbd5e1', padding: '8px 16px', fontSize: '0.8rem' }}
                 onClick={() => setShowModifyModal(false)}
@@ -1796,6 +2115,7 @@ const TreatmentPlanner = () => {
                 Cancel
               </button>
               <button 
+                type="button"
                 className="glass-button" 
                 style={{ padding: '8px 16px', fontSize: '0.8rem' }}
                 onClick={handleSaveModifiedProtocol}

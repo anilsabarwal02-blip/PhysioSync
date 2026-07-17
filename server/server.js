@@ -682,7 +682,7 @@ app.get('/api/protocols/:patientName', authenticateToken, async (req, res) => {
 
 // Create/Update Protocol (Syncs to Patients status if Approved)
 app.put('/api/protocols', authenticateToken, async (req, res) => {
-  const { patient_name, pain_score, exercises, rpe_exertion, biomechanical_rationale, phase_checklist, status } = req.body;
+  const { patient_name, pain_score, exercises, diet, rpe_exertion, biomechanical_rationale, phase_checklist, status } = req.body;
   if (!patient_name || !exercises || !phase_checklist) {
     return res.status(400).json({ error: 'Patient name, exercises, and checklist are required' });
   }
@@ -695,6 +695,7 @@ app.put('/api/protocols', authenticateToken, async (req, res) => {
       Object.assign(existing, {
         pain_score: pain_score || 4,
         exercises,
+        diet,
         rpe_exertion: rpe_exertion || 4,
         biomechanical_rationale: biomechanical_rationale === undefined ? 1 : biomechanical_rationale,
         phase_checklist,
@@ -708,6 +709,7 @@ app.put('/api/protocols', authenticateToken, async (req, res) => {
         patient_name,
         pain_score: pain_score || 4,
         exercises,
+        diet,
         rpe_exertion: rpe_exertion || 4,
         biomechanical_rationale: biomechanical_rationale === undefined ? 1 : biomechanical_rationale,
         phase_checklist,
