@@ -288,6 +288,7 @@ const CLINICAL_DIETS = {
 
 const TreatmentPlanner = () => {
   const [diagnosis, setDiagnosis] = useState('');
+  const [age, setAge] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [plan, setPlan] = useState(null);
   
@@ -486,13 +487,37 @@ const TreatmentPlanner = () => {
       patientName = "Priya Sharma";
     }
 
+    // Clone selectedProtocol and diet so we don't mutate the global constants
+    const customProtocol = JSON.parse(JSON.stringify(selectedProtocol));
+    const customDiet = JSON.parse(JSON.stringify(selectedDiet));
+
+    if (age) {
+      const patientAge = parseInt(age);
+      if (patientAge >= 60) {
+        // Senior adjustments: lower the intensity, modify reps and sets
+        customProtocol.phases = customProtocol.phases.map(phase => ({
+          ...phase,
+          goals: [...phase.goals, "Improve balance and fall prevention"],
+          restrictions: `${phase.restrictions} Ensure movement range is comfortable; do not force through pain due to age considerations.`,
+          exercises: phase.exercises.map(ex => ({
+            ...ex,
+            rpe: ex.rpe.replace('Hard', 'Moderate').replace('Medium', 'Light'),
+            parameters: ex.parameters.replace('3 sets x 12 reps', '3 sets x 8 reps').replace('3 sets x 10 reps', '2 sets x 8 reps')
+          }))
+        }));
+        if (customDiet && customDiet.focus) {
+          customDiet.focus = `${customDiet.focus} Bone density support & joint longevity focus.`;
+        }
+      }
+    }
+
     setTimeout(async () => {
       try {
         const existingProto = await api.getProtocol(patientName);
         setPlan({
-          summary: selectedProtocol.summary,
+          summary: customProtocol.summary,
           phases: existingProto.exercises,
-          diet: selectedDiet
+          diet: customDiet
         });
         setRefId(`PS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
         setPainScore(existingProto.pain_score);
@@ -503,14 +528,14 @@ const TreatmentPlanner = () => {
         }
       } catch {
         setPlan({
-          ...selectedProtocol,
-          diet: selectedDiet
+          ...customProtocol,
+          diet: customDiet
         });
         setRefId(`PS-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
         setCompletedGoals([]);
         setIsApproved(false);
-        if (selectedProtocol?.phases?.[0]?.exercises?.[0]) {
-          setSelectedExercise(selectedProtocol.phases[0].exercises[0]);
+        if (customProtocol?.phases?.[0]?.exercises?.[0]) {
+          setSelectedExercise(customProtocol.phases[0].exercises[0]);
         } else {
           setSelectedExercise(null);
         }
@@ -828,13 +853,31 @@ const TreatmentPlanner = () => {
           <div className="glass-panel" style={{ padding: '24px' }}>
             <h3>Patient Diagnosis Input</h3>
             <form onSubmit={generatePlan} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-              <textarea
-                className="search-bar"
-                style={{ width: '100%', height: '100px', resize: 'none', borderRadius: '12px', padding: '16px' }}
-                placeholder="e.g., 24yo male, Post-Op ACL Reconstruction (Right Knee), Week 1..."
-                value={diagnosis}
-                onChange={(e) => setDiagnosis(e.target.value)}
-              />
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Patient Diagnosis / Symptoms</label>
+                  <textarea
+                    className="search-bar"
+                    style={{ width: '100%', height: '100px', resize: 'none', borderRadius: '12px', padding: '16px' }}
+                    placeholder="e.g., Post-Op ACL Reconstruction (Right Knee), Week 1..."
+                    value={diagnosis}
+                    onChange={(e) => setDiagnosis(e.target.value)}
+                  />
+                </div>
+                <div style={{ flex: '0 0 150px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Age (Years)</label>
+                  <input
+                    type="number"
+                    className="search-bar"
+                    style={{ width: '100%', height: '100px', borderRadius: '12px', padding: '16px', fontSize: '1.4rem', textAlign: 'center' }}
+                    placeholder="Age"
+                    min="1"
+                    max="120"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                  />
+                </div>
+              </div>
               <button type="submit" className="glass-button" style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '12px' }}>
                 <Sparkles size={18} /> {isGenerating ? 'Analyzing...' : 'Generate AI Protocol'}
               </button>
@@ -916,6 +959,23 @@ const TreatmentPlanner = () => {
                   <div>
                     <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Rehabilitation Plan</span>
                     <h4 style={{ margin: '2px 0 0 0', fontSize: '0.9rem', color: 'var(--text-main)' }}>{plan.summary}</h4>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      <strong>Patient Name:</strong> {(() => {
+                        let pName = "Rahul Verma";
+                        if (diagnosis) {
+                          const text = diagnosis.toLowerCase();
+                          if (text.includes('acl') || text.includes('knee') || text.includes('ghutna')) {
+                            pName = "Rahul Verma";
+                          } else if (text.includes('shoulder') || text.includes('rotator') || text.includes('kandha') || text.includes('dislocation')) {
+                            pName = "Vikram Singh";
+                          } else if (text.includes('cervical') || text.includes('neck') || text.includes('gardan') || text.includes('spondylosis')) {
+                            pName = "Priya Sharma";
+                          }
+                        }
+                        return pName;
+                      })()}
+                      {age && <> | <strong>Age:</strong> {age} years</>}
+                    </div>
                   </div>
                   <span style={{ 
                     padding: '4px 8px', 
@@ -1305,11 +1365,26 @@ const TreatmentPlanner = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '16px', borderRadius: '8px', fontSize: '0.8rem' }}>
                 <div>
                   <strong>Diagnosis / Case:</strong> {diagnosis || 'General Musculoskeletal Rehab'}<br />
-                  <strong>Current Pain Score:</strong> {painScore}/10 (VAS)
+                  <strong>Current Pain Score:</strong> {painScore}/10 (VAS)<br />
+                  <strong>Patient Age:</strong> {age ? `${age} years` : 'N/A'}
                 </div>
                 <div>
                   <strong>Prescribed Plan:</strong> {plan.summary}<br />
-                  <strong>Clinical Status:</strong> Active (Self-Corrective Adjustments Enabled)
+                  <strong>Clinical Status:</strong> Active (Self-Corrective Adjustments Enabled)<br />
+                  <strong>Patient Name:</strong> {(() => {
+                    let pName = "Rahul Verma";
+                    if (diagnosis) {
+                      const text = diagnosis.toLowerCase();
+                      if (text.includes('acl') || text.includes('knee') || text.includes('ghutna')) {
+                        pName = "Rahul Verma";
+                      } else if (text.includes('shoulder') || text.includes('rotator') || text.includes('kandha') || text.includes('dislocation')) {
+                        pName = "Vikram Singh";
+                      } else if (text.includes('cervical') || text.includes('neck') || text.includes('gardan') || text.includes('spondylosis')) {
+                        pName = "Priya Sharma";
+                      }
+                    }
+                    return pName;
+                  })()}
                 </div>
               </div>
 
