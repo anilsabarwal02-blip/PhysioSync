@@ -203,15 +203,15 @@ const CLINICAL_DIETS = {
     focus: "Tissue repair, joint lubrication, fluid control, and collagen synthesis.",
     hydration: "3.2 Liters daily (To reduce joint swelling and optimize metabolic transport)",
     recommendedFoods: {
-      "Non-Veg": ["Grilled Salmon (Omega-3)", "Chicken Breast (High Protein)", "Bone Broth (Collagen)", "Eggs (Leucine & Amino Acids)", "Citrus Fruits (Vitamin C for graft synthesis)", "Blueberries (Antioxidants)", "Pumpkin Seeds (Zinc)"],
-      "Veg": ["Greek Yogurt / Paneer (Protein)", "Tofu & Edamame", "Whey Protein Shake", "Bone Broth alternative", "Citrus Fruits (Vitamin C)", "Blueberries (Antioxidants)", "Pumpkin Seeds (Zinc)"],
-      "Vegan": ["Tofu & Tempeh", "Lentil Soup / Chickpeas", "Soy Milk & Pea Protein", "Chia seeds (Omega-3)", "Citrus Fruits (Vitamin C)", "Blueberries (Antioxidants)", "Pumpkin Seeds (Zinc)"]
+      "Non-Veg": ["Fish Curry (Rohu/Surmai)", "Chicken Breast / Curry", "Egg Curry / Boiled Eggs", "Oranges / Amla (Vitamin C)", "Papaya (Antioxidants)", "Almonds & Walnuts", "Pumpkin Seeds"],
+      "Veg": ["Paneer (Cottage Cheese)", "Curd (Dahi) / Chaas", "Sprouts / Soya Chunks", "Oranges / Amla (Vitamin C)", "Papaya (Antioxidants)", "Almonds & Walnuts", "Pumpkin Seeds"],
+      "Vegan": ["Soya Chunks / Tofu", "Dal (Lentils) / Chana / Rajma", "Soya Milk / Almond Milk", "Flaxseeds (Alsi)", "Oranges / Amla (Vitamin C)", "Papaya (Antioxidants)", "Pumpkin Seeds"]
     },
-    avoidFoods: ["Refined sugar (triggers inflammation)", "Trans fats (processed snacks)", "Excess sodium (increases knee edema/swelling)"],
+    avoidFoods: ["Refined sugar (sweets & colas)", "Deep-fried foods (samosa, pakora)", "Excess sodium (reduces joint swelling)"],
     supplements: [
       { name: "Collagen Peptides", dose: "10-15g daily", timing: "30-60 mins before rehab sessions with Vitamin C", rationale: "Enhances collagen synthesis in tendon and ligament graft tissues." },
-      { name: "Vitamin C", dose: "500mg daily", timing: "With breakfast", rationale: "Essential co-factor for collagen cross-linking and tissue repair." },
-      { name: "Omega-3 Fish Oil", dose: "2000mg daily", timing: "With lunch", rationale: "Reduces inflammatory cytokines and joint swelling post-surgery." },
+      { name: "Vitamin C (Limcee)", dose: "500mg daily", timing: "With breakfast", rationale: "Essential co-factor for collagen cross-linking and tissue repair." },
+      { name: "Omega-3 Fish Oil (or Flaxseed Oil)", dose: "2000mg daily", timing: "With lunch", rationale: "Reduces inflammatory cytokines and joint swelling post-surgery." },
       { name: "Zinc Citrate", dose: "15mg daily", timing: "With dinner", rationale: "Speeds up cellular repair, tissue growth, and wound healing." }
     ]
   },
@@ -222,11 +222,11 @@ const CLINICAL_DIETS = {
     focus: "Tendon elasticity, cell membrane regeneration, and collagen synthesis.",
     hydration: "2.8 Liters daily (Optimizes tissue hydration and elasticity)",
     recommendedFoods: {
-      "Non-Veg": ["Lean Beef (Iron & Zinc)", "Eggs (Choline & Protein)", "Pineapple (Bromelain for tendon swelling)", "Turmeric & Ginger (Anti-inflammatory)", "Walnuts (Healthy Fats)", "Spinach (Magnesium)"],
-      "Veg": ["Cottage Cheese / Paneer", "Greek Yogurt", "Pineapple (Bromelain)", "Turmeric & Ginger", "Walnuts (Healthy Fats)", "Spinach & Kale (Magnesium)"],
-      "Vegan": ["Tempeh / Soy chunks", "Walnuts & Chia seeds", "Pineapple (Bromelain)", "Turmeric & Ginger", "Spinach & Kale", "Pumpkin seeds & Chickpeas"]
+      "Non-Veg": ["Egg Bhurji / Boiled Eggs", "Lean Chicken Curry", "Pineapple (Bromelain for swelling)", "Turmeric & Ginger (Haldi Doodh)", "Walnuts & Almonds", "Spinach (Palak)"],
+      "Veg": ["Paneer (Cottage Cheese)", "Curd (Dahi) / Lassi", "Pineapple (Bromelain)", "Turmeric & Ginger (Haldi Doodh)", "Walnuts & Almonds", "Spinach (Palak) / Methi"],
+      "Vegan": ["Soya Chunks / Sprouts", "Walnuts & Flaxseeds (Alsi)", "Pineapple (Bromelain)", "Turmeric & Ginger", "Spinach (Palak)", "Roasted Chana & Moong Dal"]
     },
-    avoidFoods: ["Alcohol (impairs protein synthesis)", "Saturated fats (increases systemic pain)", "Excess coffee/caffeine (restricts microcirculation to tendons)"],
+    avoidFoods: ["Alcohol (impairs muscle protein synthesis)", "Saturated fats (heavy ghee fried items)", "Excess tea/coffee (caffeine restricts microcirculation to tendons)"],
     supplements: [
       { name: "Collagen Peptides", dose: "10g daily", timing: "With Vitamin C", rationale: "Promotes tendon cell proliferation and structural remodeling." },
       { name: "Bromelain", dose: "500mg daily", timing: "Between meals", rationale: "Natural pineapple enzyme that reduces tendon swelling and pain." },
@@ -240,11 +240,11 @@ const CLINICAL_DIETS = {
     focus: "Spinal disc rehydration, nerve myelin sheath repair, and bone density.",
     hydration: "3.5 Liters daily (Critical for lumbar disc rehydration during rest/sleep)",
     recommendedFoods: {
-      "Non-Veg": ["Mackerel / Sardines (B-Vitamins & Omega-3)", "Eggs (B12 & Protein)", "Greek Yogurt (Calcium)", "Dark Leafy Greens (Magnesium)", "Avocados (Healthy Fats)", "Bone Broth"],
-      "Veg": ["Greek Yogurt (Calcium)", "Milk / Paneer", "Dark Leafy Greens (Magnesium)", "Avocados", "Chia & Flax Seeds (Omega-3)", "Almonds"],
-      "Vegan": ["Fortified Soy Milk (Calcium/B12)", "Tofu & Tempeh", "Dark Leafy Greens", "Avocados", "Chia & Flax Seeds", "Almonds"]
+      "Non-Veg": ["Fish Curry / Pan-fried Surmai", "Boiled Eggs", "Curd (Dahi) / Milk (Calcium)", "Spinach (Palak) / Mustard Greens", "Walnuts & Almonds (Healthy Fats)", "Bone Broth / Chicken Soup"],
+      "Veg": ["Curd (Dahi) / Paneer", "Milk / Buttermilk (Chaas)", "Spinach (Palak) / Methi (Magnesium)", "Walnuts & Almonds", "Flaxseeds (Alsi - Omega 3)", "Roasted Makhana"],
+      "Vegan": ["Fortified Soy Milk (Calcium/B12)", "Soya Chunks / Tofu", "Spinach (Palak) / Green Leafy Veggies", "Walnuts & Almonds", "Flaxseeds (Alsi)", "Roasted Makhana"]
     },
-    avoidFoods: ["Sugary carbonated drinks (depletes bone calcium)", "Processed red meat (promotes disc degeneration)", "Gluten & simple carbs (can trigger back nerve sensitivity)"],
+    avoidFoods: ["Carbonated sweet drinks (depletes bone calcium)", "Processed fast food", "Refined flour (Maida - triggers nerve sensitivity)"],
     supplements: [
       { name: "Vitamin D3", dose: "2000-4000 IU daily", timing: "With a fat-containing meal", rationale: "Optimizes calcium absorption and spinal bone mineral density." },
       { name: "Magnesium Glycinate", dose: "350mg daily", timing: "30-60 mins before bed", rationale: "Reduces painful spasms in lower back muscles and promotes deep sleep." },
@@ -258,11 +258,11 @@ const CLINICAL_DIETS = {
     focus: "Cervical vertebrae support, muscle tension relief, and nervous system calm.",
     hydration: "2.8 Liters daily (Keeps neck muscles and cervical discs hydrated)",
     recommendedFoods: {
-      "Non-Veg": ["Chicken Breast", "Wild Salmon (Astaxanthin & Omega-3)", "Avocado (Magnesium)", "Almonds (Vitamin E)", "Green Tea (Antioxidants)", "Bone Broth"],
-      "Veg": ["Greek Yogurt (Calcium)", "Cottage Cheese / Tofu", "Avocado (Magnesium)", "Almonds", "Green Tea", "Chia Seeds"],
-      "Vegan": ["Tofu / Edamame", "Soy Yogurt", "Avocado", "Almonds", "Green Tea", "Chia & Hemp Seeds"]
+      "Non-Veg": ["Chicken Breast / Curry", "Fish Curry (Rohu/Surmai)", "Egg Bhurji / Boiled Eggs", "Almonds & Walnuts", "Green Tea", "Bone Broth / Chicken Soup"],
+      "Veg": ["Curd (Dahi) / Chaas", "Paneer (Cottage Cheese)", "Roasted Makhana / Almonds", "Green Tea", "Flaxseeds (Alsi)", "Green Leafy Vegetables"],
+      "Vegan": ["Soya Chunks / Tofu", "Soy Yogurt", "Roasted Makhana / Almonds", "Green Tea", "Flaxseeds (Alsi)", "Sprouts / Dal"]
     },
-    avoidFoods: ["Excess sodium (stiffens neck tissues)", "Trans fats", "High chemical preservative foods"],
+    avoidFoods: ["Excess sodium (salty pickles/papads stiffen neck tissues)", "Trans fats (refined oils)", "High preservative processed foods"],
     supplements: [
       { name: "Magnesium Malate", dose: "300mg daily", timing: "With dinner", rationale: "Specifically targets muscle tissue to alleviate neck and shoulder tension." },
       { name: "Vitamin D3 + K2", dose: "2000 IU / 45mcg", timing: "With breakfast", rationale: "Maintains cervical vertebrae strength and prevents calcium buildup in arteries." }
@@ -275,11 +275,11 @@ const CLINICAL_DIETS = {
     focus: "Balanced macronutrients to preserve muscle mass and support tissue healing.",
     hydration: "2.5 Liters daily (Essential for overall recovery and tissue cell turnover)",
     recommendedFoods: {
-      "Non-Veg": ["Lean Poultry", "Eggs", "Mixed Berries", "Oats & Quinoa", "Olive Oil", "Broccoli & Cauliflower"],
-      "Veg": ["Cottage Cheese / Greek Yogurt", "Lentils & Beans", "Mixed Berries", "Oats & Quinoa", "Olive Oil", "Broccoli"],
-      "Vegan": ["Tofu / Tempeh", "Lentils & Beans", "Mixed Berries", "Oats & Quinoa", "Olive Oil", "Broccoli"]
+      "Non-Veg": ["Lean Chicken / Egg Curry", "Boiled Eggs", "Seasonal Fruits (Apples/Bananas)", "Oats / Dalia / Khichdi", "Mustard Oil / Ghee", "Spinach (Palak) & Cauliflower"],
+      "Veg": ["Paneer / Curd (Dahi)", "Dal (Lentils) & Chana", "Seasonal Fruits (Apples/Bananas)", "Oats / Dalia / Khichdi", "Mustard Oil / Ghee", "Spinach (Palak) & Cauliflower"],
+      "Vegan": ["Soya Chunks / Tofu", "Dal (Lentils) & Chana", "Seasonal Fruits (Apples/Bananas)", "Oats / Dalia / Khichdi", "Mustard Oil / Sesame Oil", "Spinach (Palak) & Green Veggies"]
     },
-    avoidFoods: ["Highly processed fast food", "Sugary beverages", "Excessive alcohol"],
+    avoidFoods: ["Highly processed street food", "Sugary beverages & sodas", "Excessive alcohol"],
     supplements: [
       { name: "Clinical Multivitamin", dose: "1 tablet daily", timing: "With breakfast", rationale: "Fills potential micro-nutritional gaps during recovery." }
     ]
