@@ -90,11 +90,11 @@ export const api = {
     return data;
   },
 
-  register: async (name, password) => {
+  register: async (registerData) => {
     resetBackendStatus();
     return request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, password })
+      body: JSON.stringify(registerData)
     });
   },
 

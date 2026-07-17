@@ -13,6 +13,12 @@ const toJSONOptions = {
 const DoctorSchema = new mongoose.Schema({
   doctor_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
+  firstName: { type: String },
+  lastName: { type: String },
+  email: { type: String },
+  contact: { type: String },
+  gender: { type: String },
+  role: { type: String, enum: ['Head Doctor', 'Junior Doctor', 'Receptionist'], default: 'Junior Doctor' },
   password: { type: String }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: false },
@@ -100,9 +106,24 @@ const WearableSchema = new mongoose.Schema({
   toObject: toJSONOptions
 });
 
+// AuditLog Schema
+const AuditLogSchema = new mongoose.Schema({
+  action: { type: String, required: true },
+  performed_by: { type: String, required: true },
+  target_patient: { type: String },
+  details: { type: String },
+  deleted: { type: Boolean, default: false },
+  deleted_at: { type: Date, default: null }
+}, {
+  timestamps: { createdAt: 'timestamp', updatedAt: false },
+  toJSON: toJSONOptions,
+  toObject: toJSONOptions
+});
+
 export const Doctor = mongoose.model('Doctor', DoctorSchema);
 export const Appointment = mongoose.model('Appointment', AppointmentSchema);
 export const Patient = mongoose.model('Patient', PatientSchema);
 export const Protocol = mongoose.model('Protocol', ProtocolSchema);
 export const EMRNote = mongoose.model('EMRNote', EMRNoteSchema);
 export const Wearable = mongoose.model('Wearable', WearableSchema);
+export const AuditLog = mongoose.model('AuditLog', AuditLogSchema);

@@ -59,7 +59,7 @@ const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   
-  const defaultDoctor = { doctorId: 'DR-DEFAULT', name: 'Dr. Sharma' };
+  const defaultDoctor = { doctorId: 'DR-DEFAULT', name: 'Dr. Sharma', role: 'Junior Doctor' };
   
   try {
     const existing = await Doctor.findOne({ doctor_id: defaultDoctor.doctorId });
@@ -97,18 +97,32 @@ app.post('/api/auth/register', async (req, res) => {
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({ error: 'Database is not connected. Please configure MONGODB_URI on your live server.' });
   }
-  const { name, password } = req.body;
-  if (!name || !password) {
-    return res.status(400).json({ error: 'Name and password are required' });
+  const { firstName, lastName, email, contact, gender, password, role } = req.body;
+  
+  if (!firstName || !lastName || !password) {
+    return res.status(400).json({ error: 'First Name, Last Name, and Password are required' });
   }
 
+  const name = `${firstName} ${lastName}`.trim();
+
   try {
+    const cleanName = name.replace(/\s+/g, ' ').trim();
+    const existingDoctor = await Doctor.findOne({ name: { $regex: new RegExp(`^${cleanName}$`, 'i') } });
+    if (existingDoctor) {
+      return res.status(400).json({ error: 'Account with this name already exists' });
+    }
     const doctorId = 'DR-' + Math.floor(1000 + Math.random() * 9000);
     const hashedPassword = await bcrypt.hash(password, 10);
     
     await Doctor.create({
       doctor_id: doctorId,
-      name,
+      name: cleanName,
+      firstName,
+      lastName,
+      email,
+      contact,
+      gender,
+      role: role || 'Junior Doctor',
       password: hashedPassword
     });
 
@@ -117,7 +131,7 @@ app.post('/api/auth/register', async (req, res) => {
 
     res.status(201).json({ 
       message: 'Doctor registered successfully', 
-      doctor: { doctorId, name } 
+      doctor: { doctorId, name: cleanName, role: role || 'Junior Doctor' } 
     });
   } catch (err) {
     console.error('Registration error:', err);
@@ -136,7 +150,8 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   try {
-    let doctor = await Doctor.findOne({ name: name });
+    const cleanName = name.replace(/\s+/g, ' ').trim();
+    let doctor = await Doctor.findOne({ name: { $regex: new RegExp(`^${cleanName}$`, 'i') } });
     
     if (!doctor) {
       return res.status(400).json({ error: 'Invalid name or password' });
@@ -148,7 +163,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: doctor.id, doctorId: doctor.doctor_id, name: doctor.name },
+      { id: doctor.id, doctorId: doctor.doctor_id, name: doctor.name, role: doctor.role || 'Junior Doctor' },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -158,7 +173,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     res.json({
       token,
-      user: { doctorId: doctor.doctor_id, name: doctor.name }
+      user: { doctorId: doctor.doctor_id, name: doctor.name, role: doctor.role || 'Junior Doctor' }
     });
   } catch (err) {
     console.error('Login error:', err);
