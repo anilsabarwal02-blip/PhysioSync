@@ -198,34 +198,83 @@ const Auth = ({ onLogin }) => {
               <div style={{ display: 'flex', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.9rem', fontWeight: '500', color: '#555', marginBottom: '4px', display: 'block' }}>First Name:</label>
-                  <input type="text" style={inputStyle} value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
+                  <div className="auth-input-container">
+                    <User className="auth-input-icon" size={18} />
+                    <input 
+                      type="text" 
+                      className="auth-input" 
+                      placeholder="First Name" 
+                      value={formData.firstName} 
+                      onChange={e => setFormData({...formData, firstName: e.target.value})} 
+                    />
+                  </div>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.9rem', fontWeight: '500', color: '#555', marginBottom: '4px', display: 'block' }}>Last Name:</label>
-                  <input type="text" style={inputStyle} value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
+                  <div className="auth-input-container">
+                    <User className="auth-input-icon" size={18} />
+                    <input 
+                      type="text" 
+                      className="auth-input" 
+                      placeholder="Last Name" 
+                      value={formData.lastName} 
+                      onChange={e => setFormData({...formData, lastName: e.target.value})} 
+                    />
+                  </div>
                 </div>
               </div>
               
               <div>
                 <label style={{ fontSize: '0.9rem', fontWeight: '500', color: '#555', marginBottom: '4px', display: 'block' }}>Email:</label>
-                <input type="email" style={inputStyle} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                <div className="auth-input-container">
+                  <Mail className="auth-input-icon" size={18} />
+                  <input 
+                    type="email" 
+                    className="auth-input" 
+                    placeholder="Email Address" 
+                    value={formData.email} 
+                    onChange={e => setFormData({...formData, email: e.target.value})} 
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.9rem', fontWeight: '500', color: '#555', marginBottom: '4px', display: 'block' }}>Password:</label>
-                  <div style={{ position: 'relative' }}>
-                    <input type={showPassword ? "text" : "password"} style={{...inputStyle, paddingRight: '40px'}} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-                    <div style={{ position: 'absolute', right: '12px', top: '10px', cursor: 'pointer', color: '#999' }} onClick={() => setShowPassword(!showPassword)}>
+                  <div className="auth-input-container">
+                    <Lock className="auth-input-icon" size={18} />
+                    <input 
+                      type={showPassword ? "text" : "password"} 
+                      className="auth-input" 
+                      placeholder="Password" 
+                      style={{ paddingRight: '40px !important' }} 
+                      value={formData.password} 
+                      onChange={e => setFormData({...formData, password: e.target.value})} 
+                    />
+                    <div 
+                      style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: 'var(--text-muted)' }} 
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </div>
                   </div>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.9rem', fontWeight: '500', color: '#555', marginBottom: '4px', display: 'block' }}>Re-type Password:</label>
-                  <div style={{ position: 'relative' }}>
-                    <input type={showRetypePassword ? "text" : "password"} style={{...inputStyle, paddingRight: '40px'}} value={formData.retypePassword} onChange={e => setFormData({...formData, retypePassword: e.target.value})} />
-                    <div style={{ position: 'absolute', right: '12px', top: '10px', cursor: 'pointer', color: '#999' }} onClick={() => setShowRetypePassword(!showRetypePassword)}>
+                  <div className="auth-input-container">
+                    <Lock className="auth-input-icon" size={18} />
+                    <input 
+                      type={showRetypePassword ? "text" : "password"} 
+                      className="auth-input" 
+                      placeholder="Re-type Password" 
+                      style={{ paddingRight: '40px !important' }} 
+                      value={formData.retypePassword} 
+                      onChange={e => setFormData({...formData, retypePassword: e.target.value})} 
+                    />
+                    <div 
+                      style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: 'var(--text-muted)' }} 
+                      onClick={() => setShowRetypePassword(!showRetypePassword)}
+                    >
                       {showRetypePassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </div>
                   </div>
@@ -235,28 +284,37 @@ const Auth = ({ onLogin }) => {
               <div style={{ display: 'flex', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.9rem', fontWeight: '500', color: '#555', marginBottom: '4px', display: 'block' }}>Contact:</label>
-                  <input 
-                    type="tel" 
-                    maxLength={10}
-                    style={inputStyle} 
-                    value={formData.contact} 
-                    onChange={e => {
-                      const onlyNums = e.target.value.replace(/[^0-9]/g, '');
-                      setFormData({...formData, contact: onlyNums});
-                    }} 
-                  />
+                  <div className="auth-input-container">
+                    <Phone className="auth-input-icon" size={18} />
+                    <input 
+                      type="tel" 
+                      maxLength={10}
+                      className="auth-input" 
+                      placeholder="Phone number (10 digits)"
+                      value={formData.contact} 
+                      onChange={e => {
+                        const onlyNums = e.target.value.replace(/[^0-9]/g, '');
+                        setFormData({...formData, contact: onlyNums});
+                      }} 
+                    />
+                  </div>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.9rem', fontWeight: '500', color: '#555', marginBottom: '4px', display: 'block' }}>Gender:</label>
-                  <select style={inputStyle} value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
+                  <div className="auth-input-container">
+                    <Users className="auth-input-icon" size={18} />
+                    <select 
+                      className="auth-input" 
+                      value={formData.gender} 
+                      onChange={e => setFormData({...formData, gender: e.target.value})}
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-              
-
 
               <div>
                 <label style={{ fontSize: '0.9rem', fontWeight: '500', color: '#555', marginBottom: '4px', display: 'block' }}>Security Code:</label>
@@ -280,13 +338,16 @@ const Auth = ({ onLogin }) => {
                     <RefreshCw size={20} />
                   </button>
                 </div>
-                <input 
-                  type="text" 
-                  placeholder="Enter code above"
-                  style={{...inputStyle, marginTop: '8px'}} 
-                  value={userInputCaptcha} 
-                  onChange={e => setUserInputCaptcha(e.target.value)} 
-                />
+                <div className="auth-input-container" style={{ marginTop: '8px' }}>
+                  <Lock className="auth-input-icon" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="Enter security code above"
+                    className="auth-input"
+                    value={userInputCaptcha} 
+                    onChange={e => setUserInputCaptcha(e.target.value)} 
+                  />
+                </div>
               </div>
 
               <button type="submit" className="glass-button" style={{ marginTop: '10px', padding: '14px', width: '100%' }}>
@@ -295,7 +356,7 @@ const Auth = ({ onLogin }) => {
             </div>
           )}
         </form>
-
+ 
         <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '0.9rem' }}>
           <span style={{ color: 'var(--text-muted)' }}>
             {isLogin ? "Don't have an account? " : "Already have an account? "}
@@ -312,17 +373,5 @@ const Auth = ({ onLogin }) => {
   );
 };
 
-const inputStyle = {
-  width: '100%',
-  padding: '12px 20px',
-  borderRadius: '50px',
-  border: 'none',
-  boxSizing: 'border-box',
-  fontSize: '0.95rem',
-  background: 'rgba(255, 255, 255, 0.9)',
-  color: 'var(--text-main)',
-  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
-  outline: 'none'
-};
-
 export default Auth;
+
