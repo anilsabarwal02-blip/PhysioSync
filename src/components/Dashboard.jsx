@@ -1059,13 +1059,13 @@ const Dashboard = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <h4 style={{ margin: 0, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          {log.topic}
+                          {log.patient}
                           <span style={{ fontSize: '0.75rem', background: log.status === 'Approved' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 132, 199, 0.15)', color: log.status === 'Approved' ? '#0d9488' : 'var(--secondary)', padding: '2px 8px', borderRadius: '8px', fontWeight: 'bold' }}>
                             {log.status}
                           </span>
                         </h4>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          Patient: <strong>{log.patient}</strong> • Student: <strong>{log.student}</strong>
+                          Topic: <strong>{log.topic}</strong> • Student: <strong>{log.student}</strong>
                         </span>
                       </div>
                       
